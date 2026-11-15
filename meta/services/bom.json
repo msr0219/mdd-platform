@@ -1,0 +1,467 @@
+{
+  "services": [
+    {
+      "code": "createBom",
+      "name": "创建BOM版本",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "code",
+          "label": "BOM编码",
+          "type": "string",
+          "required": true,
+          "maxLength": 100
+        },
+        {
+          "name": "product",
+          "label": "产品名称",
+          "type": "string",
+          "required": true,
+          "maxLength": 255
+        },
+        {
+          "name": "revision",
+          "label": "版本号",
+          "type": "string",
+          "required": true,
+          "maxLength": 100
+        }
+      ],
+      "guards": [],
+      "steps": [
+        {
+          "call": "product_bom.create",
+          "map": {
+            "code": "params.code",
+            "product": "params.product",
+            "revision": "params.revision"
+          }
+        }
+      ]
+    },
+    {
+      "code": "addBomItem",
+      "name": "添加BOM零件",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "bomId",
+          "label": "BOM版本",
+          "type": "ref",
+          "required": true,
+          "ref": "product_bom"
+        },
+        {
+          "name": "slot",
+          "label": "装机位置",
+          "type": "string",
+          "required": true,
+          "pattern": "[A-Z][A-Z0-9_-]{0,49}",
+          "maxLength": 50
+        },
+        {
+          "name": "partName",
+          "label": "零件名称",
+          "type": "string",
+          "required": true,
+          "maxLength": 255
+        },
+        {
+          "name": "qty",
+          "label": "单机用量",
+          "type": "integer",
+          "required": true,
+          "min": 1
+        }
+      ],
+      "guards": [
+        {
+          "call": "product_bom.read",
+          "map": {
+            "id": "params.bomId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "DRAFT"
+            }
+          },
+          "message": "仅草稿BOM允许修改"
+        },
+        {
+          "call": "bom_item.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "bomId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.bomId"
+              },
+              {
+                "field": {
+                  "const": "slot"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.slot"
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": {
+              "const": 0
+            }
+          },
+          "message": "同一BOM中的装机位置不能重复"
+        },
+        {
+          "call": "bom_item.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "bomId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.bomId"
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "lt",
+            "right": {
+              "const": 100
+            }
+          },
+          "message": "一个BOM最多配置100个零件位置"
+        }
+      ],
+      "steps": [
+        {
+          "call": "product_bom.update",
+          "map": {
+            "id": "guards[0].result.id",
+            "version": "guards[0].result.version",
+            "product": "guards[0].result.product"
+          }
+        },
+        {
+          "call": "bom_item.create",
+          "map": {
+            "bomId": "params.bomId",
+            "slot": "params.slot",
+            "partName": "params.partName",
+            "qty": "params.qty"
+          }
+        }
+      ]
+    },
+    {
+      "code": "removeBomItem",
+      "name": "删除草稿BOM零件",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "itemId",
+          "label": "BOM明细",
+          "type": "ref",
+          "required": true,
+          "ref": "bom_item"
+        }
+      ],
+      "guards": [
+        {
+          "call": "bom_item.read",
+          "map": {
+            "id": "params.itemId"
+          }
+        },
+        {
+          "call": "product_bom.read",
+          "map": {
+            "id": "guards[0].result.bomId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "DRAFT"
+            }
+          },
+          "message": "已发布BOM不允许删除明细"
+        }
+      ],
+      "steps": [
+        {
+          "call": "product_bom.update",
+          "map": {
+            "id": "guards[1].result.id",
+            "version": "guards[1].result.version",
+            "product": "guards[1].result.product"
+          }
+        },
+        {
+          "call": "bom_item.delete",
+          "map": {
+            "id": "params.itemId",
+            "version": "guards[0].result.version"
+          }
+        }
+      ]
+    },
+    {
+      "code": "publishBom",
+      "name": "发布BOM版本",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "bomId",
+          "label": "BOM版本",
+          "type": "ref",
+          "required": true,
+          "ref": "product_bom"
+        }
+      ],
+      "guards": [
+        {
+          "call": "product_bom.read",
+          "map": {
+            "id": "params.bomId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "DRAFT"
+            }
+          },
+          "message": "仅草稿BOM允许修改"
+        },
+        {
+          "call": "bom_item.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "bomId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.bomId"
+              }
+            ]
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.total",
+                "op": "ge",
+                "right": {
+                  "const": 1
+                }
+              },
+              {
+                "left": "result.total",
+                "op": "le",
+                "right": {
+                  "const": 100
+                }
+              }
+            ]
+          },
+          "message": "发布需要1至100条BOM明细"
+        },
+        {
+          "call": "bom_item.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "bomId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.bomId"
+              },
+              {
+                "field": {
+                  "const": "slot"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": {
+                  "const": "PRIMARY"
+                }
+              }
+            ]
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.total",
+                "op": "eq",
+                "right": {
+                  "const": 1
+                }
+              },
+              {
+                "left": "result.records[0].qty",
+                "op": "eq",
+                "right": {
+                  "const": 1
+                }
+              }
+            ]
+          },
+          "message": "BOM必须包含一个PRIMARY主要位置，单机用量为1"
+        }
+      ],
+      "steps": [
+        {
+          "call": "product_bom.transition",
+          "map": {
+            "id": "params.bomId",
+            "version": "guards[0].result.version",
+            "to": {
+              "const": "PUBLISHED"
+            },
+            "reason": {
+              "const": "BOM明细确认完成，发布后冻结版本"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "code": "createBomWorkOrder",
+      "name": "按BOM创建工单",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "orderNo",
+          "label": "工单编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "bomId",
+          "label": "BOM版本",
+          "type": "ref",
+          "required": true,
+          "ref": "product_bom",
+          "refFilters": [
+            {
+              "field": "status",
+              "op": "eq",
+              "value": "PUBLISHED"
+            }
+          ]
+        },
+        {
+          "name": "plannedQty",
+          "label": "计划数量",
+          "type": "integer",
+          "required": true,
+          "min": 1,
+          "max": 200
+        },
+        {
+          "name": "remark",
+          "label": "备注",
+          "type": "text",
+          "required": false,
+          "defaultValue": null
+        }
+      ],
+      "guards": [
+        {
+          "call": "product_bom.read",
+          "map": {
+            "id": "params.bomId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "PUBLISHED"
+            }
+          },
+          "message": "请选择已发布的BOM版本"
+        }
+      ],
+      "steps": [
+        {
+          "call": "work_order.create",
+          "map": {
+            "orderNo": "params.orderNo",
+            "bomId": "params.bomId",
+            "product": "guards[0].result.product",
+            "plannedQty": "params.plannedQty",
+            "remark": "params.remark"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2636 @@
+{
+  "services": [
+    {
+      "code": "issueMaterial",
+      "name": "生产领料",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "type": "string",
+          "required": true,
+          "label": "请求编号"
+        },
+        {
+          "name": "batchId",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true,
+          "label": "来源批次"
+        },
+        {
+          "name": "workOrderId",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true,
+          "label": "生产工单"
+        },
+        {
+          "name": "qty",
+          "type": "integer",
+          "min": 1,
+          "required": true,
+          "label": "数量"
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          },
+          "condition": {
+            "left": "result.qualityStatus",
+            "op": "eq",
+            "right": {
+              "const": "GOOD"
+            }
+          },
+          "message": "只有良品批次可以领料"
+        },
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "in",
+            "right": {
+              "const": [
+                "PLANNED",
+                "ASSEMBLING"
+              ]
+            }
+          },
+          "message": "当前工单状态不允许领料"
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.batchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": {
+              "negate": "params.qty"
+            },
+            "version": "guards[0].result.version"
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.batchId",
+            "workOrderId": "params.workOrderId",
+            "type": {
+              "const": "ISSUE"
+            },
+            "qty": "params.qty"
+          }
+        },
+        {
+          "call": "work_order.update",
+          "map": {
+            "id": "params.workOrderId",
+            "version": "guards[1].result.version",
+            "remark": "guards[1].result.remark"
+          }
+        }
+      ],
+      "return": {
+        "batch": "steps[1].result",
+        "movement": "steps[2].result"
+      }
+    },
+    {
+      "code": "registerDefect",
+      "name": "不良登记与隔离",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "type": "string",
+          "required": true,
+          "label": "请求编号"
+        },
+        {
+          "name": "batchId",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true,
+          "label": "来源批次"
+        },
+        {
+          "name": "qty",
+          "type": "integer",
+          "min": 1,
+          "required": true,
+          "label": "数量"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "label": "不良原因"
+        },
+        {
+          "name": "defectCode",
+          "label": "不良代码",
+          "type": "string",
+          "defaultValue": null
+        },
+        {
+          "name": "station",
+          "label": "发现工位",
+          "type": "string",
+          "defaultValue": null
+        },
+        {
+          "name": "evidenceUrl",
+          "label": "凭证链接",
+          "type": "string",
+          "maxLength": 1000,
+          "defaultValue": null
+        },
+        {
+          "name": "workOrderId",
+          "label": "关联工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": false,
+          "defaultValue": null
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          },
+          "condition": {
+            "left": "result.qualityStatus",
+            "op": "eq",
+            "right": {
+              "const": "GOOD"
+            }
+          },
+          "message": "请从良品批次登记隔离"
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.batchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": {
+              "negate": "params.qty"
+            },
+            "version": "guards[0].result.version"
+          }
+        },
+        {
+          "call": "defect_record.create",
+          "map": {
+            "batchId": "params.batchId",
+            "qty": "params.qty",
+            "reason": "params.reason",
+            "defectCode": "params.defectCode",
+            "station": "params.station",
+            "evidenceUrl": "params.evidenceUrl",
+            "workOrderId": "params.workOrderId"
+          }
+        },
+        {
+          "call": "defect_record.transition",
+          "map": {
+            "id": "steps[2].result.id",
+            "version": "steps[2].result.version",
+            "to": {
+              "const": "ISOLATED"
+            },
+            "reason": "params.reason"
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.batchId",
+            "type": {
+              "const": "ISOLATE"
+            },
+            "qty": "params.qty",
+            "remark": "params.reason"
+          }
+        },
+        {
+          "call": "service.freezeAffected",
+          "map": {
+            "batchId": "params.batchId"
+          }
+        }
+      ],
+      "return": "steps[3].result"
+    },
+    {
+      "code": "rework",
+      "name": "未装机零件库存返工",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "type": "string",
+          "required": true,
+          "label": "请求编号"
+        },
+        {
+          "name": "defectId",
+          "type": "ref",
+          "ref": "defect_record",
+          "required": true,
+          "label": "不良处置单"
+        },
+        {
+          "name": "replacementBatchId",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true,
+          "label": "补领良品批次"
+        },
+        {
+          "name": "returnBatchId",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true,
+          "label": "旧件退回不良批次"
+        }
+      ],
+      "guards": [
+        {
+          "call": "defect_record.read",
+          "map": {
+            "id": "params.defectId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "in",
+            "right": {
+              "const": [
+                "ISOLATED",
+                "REWORK"
+              ]
+            }
+          },
+          "message": "处置单必须处于隔离或返工状态"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "guards[0].result.batchId"
+          },
+          "message": "原始零件批次不存在"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.replacementBatchId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.qualityStatus",
+                "op": "eq",
+                "right": {
+                  "const": "GOOD"
+                }
+              },
+              {
+                "left": "result.partName",
+                "op": "eq",
+                "right": "guards[1].result.partName"
+              }
+            ]
+          },
+          "message": "补领批次必须为与原零件相同的良品"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.returnBatchId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.qualityStatus",
+                "op": "eq",
+                "right": {
+                  "const": "BAD"
+                }
+              },
+              {
+                "left": "result.partName",
+                "op": "eq",
+                "right": "guards[1].result.partName"
+              }
+            ]
+          },
+          "message": "退回批次必须为与原零件相同的不良品"
+        },
+        {
+          "call": "service.countActiveBatchAssemblies",
+          "map": {
+            "batchId": "guards[0].result.batchId"
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": {
+              "const": 0
+            }
+          },
+          "message": "该批次仍有在用装机零件，请先在装机零件明细中执行返工更换"
+        },
+        {
+          "call": "rework_record.aggregate",
+          "map": {
+            "filters": [
+              {
+                "field": {
+                  "const": "defectId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.defectId"
+              }
+            ],
+            "metrics": {
+              "const": [
+                {
+                  "op": "sum",
+                  "field": "qty",
+                  "as": "reworked"
+                }
+              ]
+            }
+          },
+          "condition": {
+            "left": "result.records[0].reworked",
+            "op": "lt",
+            "right": "guards[0].result.qty"
+          },
+          "message": "该处置单已完成全部返工数量"
+        }
+      ],
+      "steps": [
+        {
+          "call": "defect_record.update",
+          "map": {
+            "id": "params.defectId",
+            "version": "guards[0].result.version",
+            "remark": "guards[0].result.remark"
+          }
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.replacementBatchId"
+          }
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.returnBatchId"
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.replacementBatchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": {
+              "negate": {
+                "subtract": [
+                  "guards[0].result.qty",
+                  "guards[5].result.records[0].reworked"
+                ]
+              }
+            },
+            "version": "guards[2].result.version"
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.returnBatchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": {
+              "subtract": [
+                "guards[0].result.qty",
+                "guards[5].result.records[0].reworked"
+              ]
+            },
+            "version": "guards[3].result.version"
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.replacementBatchId",
+            "qty": {
+              "subtract": [
+                "guards[0].result.qty",
+                "guards[5].result.records[0].reworked"
+              ]
+            },
+            "type": {
+              "const": "REWORK_ISSUE"
+            }
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.returnBatchId",
+            "qty": {
+              "subtract": [
+                "guards[0].result.qty",
+                "guards[5].result.records[0].reworked"
+              ]
+            },
+            "type": {
+              "const": "RETURN_BAD"
+            }
+          }
+        },
+        {
+          "call": "rework_record.create",
+          "map": {
+            "defectId": "params.defectId",
+            "replacementBatchId": "params.replacementBatchId",
+            "returnBatchId": "params.returnBatchId",
+            "qty": {
+              "subtract": [
+                "guards[0].result.qty",
+                "guards[5].result.records[0].reworked"
+              ]
+            }
+          }
+        },
+        {
+          "call": "defect_record.transition",
+          "map": {
+            "id": "params.defectId",
+            "version": "steps[0].result.version",
+            "to": {
+              "const": "REWORK"
+            }
+          },
+          "when": {
+            "left": "guards[0].result.status",
+            "op": "eq",
+            "right": {
+              "const": "ISOLATED"
+            }
+          }
+        },
+        {
+          "call": "defect_record.read",
+          "map": {
+            "id": "params.defectId"
+          }
+        }
+      ],
+      "return": {
+        "record": "steps[7].result",
+        "defect": "steps[9].result"
+      }
+    },
+    {
+      "code": "freezeAffected",
+      "name": "冻结受影响整机与工单",
+      "transactional": true,
+      "params": [
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.related",
+          "map": {
+            "id": "params.batchId",
+            "model": {
+              "const": "assembly_record"
+            },
+            "paths": {
+              "const": [
+                [
+                  {
+                    "model": "assembly_record",
+                    "field": "batchId",
+                    "direction": "in"
+                  }
+                ],
+                [
+                  {
+                    "model": "assembly_component",
+                    "field": "batchId",
+                    "direction": "in",
+                    "filters": [
+                      {
+                        "field": "active",
+                        "op": "eq",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "model": "assembly_record",
+                    "field": "assemblyId",
+                    "direction": "out"
+                  }
+                ]
+              ]
+            },
+            "pageSize": {
+              "const": 200
+            }
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "le",
+            "right": {
+              "const": 200
+            }
+          },
+          "message": "受影响整机超过200条，请拆分处理，禁止部分冻结"
+        }
+      ],
+      "steps": [
+        {
+          "forEach": "guards[0].result.records",
+          "steps": [
+            {
+              "call": "assembly_record.read",
+              "map": {
+                "id": "item.id"
+              }
+            },
+            {
+              "call": "assembly_record.update",
+              "map": {
+                "id": "item.id",
+                "version": "loopSteps[0].result.version",
+                "remark": "loopSteps[0].result.remark"
+              }
+            },
+            {
+              "call": "assembly_record.transition",
+              "when": {
+                "left": "loopSteps[0].result.status",
+                "op": "ne",
+                "right": {
+                  "const": "HOLD"
+                }
+              },
+              "map": {
+                "id": "item.id",
+                "version": "loopSteps[1].result.version",
+                "to": {
+                  "const": "HOLD"
+                },
+                "reason": {
+                  "const": "装机零件批次发现不良，冻结待处置"
+                }
+              }
+            },
+            {
+              "call": "work_order.read",
+              "map": {
+                "id": "item.workOrderId"
+              }
+            },
+            {
+              "call": "work_order.update",
+              "when": {
+                "left": "loopSteps[3].result.status",
+                "op": "ne",
+                "right": {
+                  "const": "FROZEN"
+                }
+              },
+              "map": {
+                "id": "item.workOrderId",
+                "version": "loopSteps[3].result.version",
+                "previousStatus": "loopSteps[3].result.status"
+              }
+            },
+            {
+              "call": "work_order.update",
+              "when": {
+                "left": "loopSteps[3].result.status",
+                "op": "eq",
+                "right": {
+                  "const": "FROZEN"
+                }
+              },
+              "map": {
+                "id": "item.workOrderId",
+                "version": "loopSteps[3].result.version",
+                "remark": "loopSteps[3].result.remark"
+              }
+            },
+            {
+              "call": "work_order.transition",
+              "when": {
+                "left": "loopSteps[3].result.status",
+                "op": "ne",
+                "right": {
+                  "const": "FROZEN"
+                }
+              },
+              "map": {
+                "id": "item.workOrderId",
+                "version": "loopSteps[4].result.version",
+                "to": {
+                  "const": "FROZEN"
+                },
+                "reason": {
+                  "const": "关联零件批次质量异常"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "internalOnly": true,
+      "systemScope": true,
+      "return": {
+        "processed": {
+          "const": true
+        }
+      }
+    },
+    {
+      "code": "releaseAffected",
+      "name": "按未结异常自动解除冻结",
+      "transactional": true,
+      "params": [
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.related",
+          "map": {
+            "id": "params.batchId",
+            "model": {
+              "const": "assembly_record"
+            },
+            "paths": {
+              "const": [
+                [
+                  {
+                    "model": "assembly_record",
+                    "field": "batchId",
+                    "direction": "in"
+                  }
+                ],
+                [
+                  {
+                    "model": "assembly_component",
+                    "field": "batchId",
+                    "direction": "in"
+                  },
+                  {
+                    "model": "assembly_record",
+                    "field": "assemblyId",
+                    "direction": "out"
+                  }
+                ]
+              ]
+            },
+            "pageSize": {
+              "const": 200
+            }
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "le",
+            "right": {
+              "const": 200
+            }
+          },
+          "message": "受影响整机超过200条，请拆分处理"
+        }
+      ],
+      "steps": [
+        {
+          "forEach": "guards[0].result.records",
+          "steps": [
+            {
+              "call": "assembly_record.read",
+              "map": {
+                "id": "item.id"
+              }
+            },
+            {
+              "call": "assembly_record.update",
+              "map": {
+                "id": "item.id",
+                "version": "loopSteps[0].result.version",
+                "remark": "loopSteps[0].result.remark"
+              }
+            },
+            {
+              "call": "assembly_record.related",
+              "map": {
+                "id": "item.id",
+                "model": {
+                  "const": "defect_record"
+                },
+                "paths": {
+                  "const": [
+                    [
+                      {
+                        "model": "part_batch",
+                        "field": "batchId",
+                        "direction": "out"
+                      },
+                      {
+                        "model": "defect_record",
+                        "field": "batchId",
+                        "direction": "in"
+                      }
+                    ],
+                    [
+                      {
+                        "model": "assembly_component",
+                        "field": "assemblyId",
+                        "direction": "in",
+                        "filters": [
+                          {
+                            "field": "active",
+                            "op": "eq",
+                            "value": true
+                          }
+                        ]
+                      },
+                      {
+                        "model": "part_batch",
+                        "field": "batchId",
+                        "direction": "out"
+                      },
+                      {
+                        "model": "defect_record",
+                        "field": "batchId",
+                        "direction": "in"
+                      }
+                    ],
+                    [
+                      {
+                        "model": "component_change",
+                        "field": "assemblyId",
+                        "direction": "in"
+                      },
+                      {
+                        "model": "defect_record",
+                        "field": "defectId",
+                        "direction": "out"
+                      }
+                    ]
+                  ]
+                },
+                "pageSize": {
+                  "const": 1
+                },
+                "filters": [
+                  {
+                    "field": {
+                      "const": "status"
+                    },
+                    "op": {
+                      "const": "in"
+                    },
+                    "value": {
+                      "const": [
+                        "PENDING",
+                        "ISOLATED",
+                        "REWORK",
+                        "RECHECK"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "call": "assembly_record.transition",
+              "when": {
+                "all": [
+                  {
+                    "left": "loopSteps[0].result.status",
+                    "op": "eq",
+                    "right": {
+                      "const": "HOLD"
+                    }
+                  },
+                  {
+                    "left": "loopSteps[2].result.total",
+                    "op": "eq",
+                    "right": {
+                      "const": 0
+                    }
+                  }
+                ]
+              },
+              "map": {
+                "id": "item.id",
+                "version": "loopSteps[1].result.version",
+                "to": {
+                  "const": "RELEASED"
+                },
+                "reason": {
+                  "const": "所有在用零件及返工处置异常已关闭"
+                }
+              }
+            },
+            {
+              "call": "work_order.read",
+              "map": {
+                "id": "item.workOrderId"
+              }
+            },
+            {
+              "call": "work_order.update",
+              "map": {
+                "id": "item.workOrderId",
+                "version": "loopSteps[4].result.version",
+                "remark": "loopSteps[4].result.remark"
+              }
+            },
+            {
+              "call": "assembly_record.list",
+              "map": {
+                "pageSize": {
+                  "const": 1
+                },
+                "filters": [
+                  {
+                    "field": {
+                      "const": "workOrderId"
+                    },
+                    "op": {
+                      "const": "eq"
+                    },
+                    "value": "item.workOrderId"
+                  },
+                  {
+                    "field": {
+                      "const": "status"
+                    },
+                    "op": {
+                      "const": "ne"
+                    },
+                    "value": {
+                      "const": "RELEASED"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "call": "work_order.transition",
+              "when": {
+                "all": [
+                  {
+                    "left": "loopSteps[6].result.total",
+                    "op": "eq",
+                    "right": {
+                      "const": 0
+                    }
+                  },
+                  {
+                    "left": "loopSteps[4].result.status",
+                    "op": "eq",
+                    "right": {
+                      "const": "FROZEN"
+                    }
+                  }
+                ]
+              },
+              "map": {
+                "id": "item.workOrderId",
+                "version": "loopSteps[5].result.version",
+                "to": "loopSteps[4].result.previousStatus",
+                "reason": {
+                  "const": "所有关联整机及零件异常已关闭"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "internalOnly": true,
+      "systemScope": true,
+      "return": {
+        "processed": {
+          "const": true
+        }
+      }
+    },
+    {
+      "code": "submitRecheck",
+      "name": "登记复检与放行",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "defectId",
+          "label": "不良处置单",
+          "type": "ref",
+          "ref": "defect_record",
+          "required": true
+        },
+        {
+          "name": "result",
+          "label": "复检结果",
+          "type": "enum",
+          "required": true,
+          "options": [
+            {
+              "value": "PASS",
+              "label": "合格放行"
+            },
+            {
+              "value": "FAIL",
+              "label": "不合格，继续返工"
+            }
+          ]
+        },
+        {
+          "name": "workHours",
+          "label": "返工/复检工时",
+          "type": "decimal",
+          "min": 0,
+          "defaultValue": 0
+        },
+        {
+          "name": "remark",
+          "label": "检验项目与结果说明",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "defect_record.read",
+          "map": {
+            "id": "params.defectId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "RECHECK"
+            }
+          },
+          "message": "只有待复检的处置单可以提交检验结果"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "guards[0].result.batchId"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "call": "quality_inspection.create",
+          "map": {
+            "batchId": "guards[0].result.batchId",
+            "defectId": "params.defectId",
+            "supplier": "guards[1].result.supplier",
+            "phase": {
+              "const": "RECHECK"
+            },
+            "testedQty": "guards[0].result.qty",
+            "passedQty": "guards[0].result.qty",
+            "workHours": "params.workHours",
+            "remark": "params.remark"
+          },
+          "when": {
+            "left": "params.result",
+            "op": "eq",
+            "right": {
+              "const": "PASS"
+            }
+          }
+        },
+        {
+          "call": "quality_inspection.create",
+          "map": {
+            "batchId": "guards[0].result.batchId",
+            "defectId": "params.defectId",
+            "supplier": "guards[1].result.supplier",
+            "phase": {
+              "const": "RECHECK"
+            },
+            "testedQty": "guards[0].result.qty",
+            "passedQty": {
+              "const": 0
+            },
+            "workHours": "params.workHours",
+            "remark": "params.remark"
+          },
+          "when": {
+            "left": "params.result",
+            "op": "eq",
+            "right": {
+              "const": "FAIL"
+            }
+          }
+        },
+        {
+          "call": "defect_record.transition",
+          "map": {
+            "id": "params.defectId",
+            "version": "guards[0].result.version",
+            "to": {
+              "const": "CLOSED"
+            },
+            "reason": "params.remark"
+          },
+          "when": {
+            "left": "params.result",
+            "op": "eq",
+            "right": {
+              "const": "PASS"
+            }
+          }
+        },
+        {
+          "call": "defect_record.transition",
+          "map": {
+            "id": "params.defectId",
+            "version": "guards[0].result.version",
+            "to": {
+              "const": "REWORK"
+            },
+            "reason": "params.remark"
+          },
+          "when": {
+            "left": "params.result",
+            "op": "eq",
+            "right": {
+              "const": "FAIL"
+            }
+          }
+        },
+        {
+          "call": "service.releaseAffected",
+          "map": {
+            "batchId": "guards[0].result.batchId"
+          },
+          "when": {
+            "left": "params.result",
+            "op": "eq",
+            "right": {
+              "const": "PASS"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "code": "inspectIncoming",
+      "name": "登记来料检验",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "qty",
+          "label": "检验数量",
+          "type": "integer",
+          "min": 1,
+          "required": true
+        },
+        {
+          "name": "passedQty",
+          "label": "合格数量",
+          "type": "integer",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "workHours",
+          "label": "检验工时",
+          "type": "decimal",
+          "min": 0,
+          "defaultValue": 0
+        },
+        {
+          "name": "remark",
+          "label": "检验项目与结果说明",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.qualityStatus",
+                "op": "in",
+                "right": {
+                  "const": [
+                    "GOOD",
+                    "PENDING"
+                  ]
+                }
+              },
+              {
+                "left": "params.passedQty",
+                "op": "le",
+                "right": "params.qty"
+              },
+              {
+                "left": "params.qty",
+                "op": "le",
+                "right": "result.quantity"
+              },
+              {
+                "any": [
+                  {
+                    "left": "result.qualityStatus",
+                    "op": "eq",
+                    "right": {
+                      "const": "GOOD"
+                    }
+                  },
+                  {
+                    "left": "params.qty",
+                    "op": "eq",
+                    "right": "result.quantity"
+                  }
+                ]
+              }
+            ]
+          },
+          "message": "待检批次须整批检验；合格数不能超过检验数，检验数不能超过库存"
+        }
+      ],
+      "steps": [
+        {
+          "call": "quality_inspection.create",
+          "map": {
+            "batchId": "params.batchId",
+            "supplier": "guards[0].result.supplier",
+            "phase": {
+              "const": "IQC"
+            },
+            "testedQty": "params.qty",
+            "passedQty": "params.passedQty",
+            "workHours": "params.workHours",
+            "remark": "params.remark"
+          }
+        },
+        {
+          "call": "part_batch.update",
+          "when": {
+            "left": "guards[0].result.qualityStatus",
+            "op": "eq",
+            "right": {
+              "const": "PENDING"
+            }
+          },
+          "map": {
+            "id": "params.batchId",
+            "version": "guards[0].result.version",
+            "qualityStatus": {
+              "const": "GOOD"
+            }
+          }
+        },
+        {
+          "call": "service.registerDefect",
+          "when": {
+            "left": "params.passedQty",
+            "op": "lt",
+            "right": "params.qty"
+          },
+          "map": {
+            "requestId": "params.requestId",
+            "batchId": "params.batchId",
+            "qty": {
+              "subtract": [
+                "params.qty",
+                "params.passedQty"
+              ]
+            },
+            "reason": "params.remark",
+            "defectCode": {
+              "const": "IQC"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "code": "submitForRecheck",
+      "name": "返工完成，提交复检",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "defectId",
+          "label": "不良处置单",
+          "type": "ref",
+          "ref": "defect_record",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "defect_record.read",
+          "map": {
+            "id": "params.defectId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "REWORK"
+            }
+          },
+          "message": "处置单不在返工状态"
+        },
+        {
+          "call": "rework_record.aggregate",
+          "map": {
+            "filters": [
+              {
+                "field": {
+                  "const": "defectId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.defectId"
+              }
+            ],
+            "metrics": {
+              "const": [
+                {
+                  "op": "sum",
+                  "field": "qty",
+                  "as": "reworked"
+                }
+              ]
+            }
+          },
+          "condition": {
+            "left": "result.records[0].reworked",
+            "op": "eq",
+            "right": "guards[0].result.qty"
+          },
+          "message": "必须先完成全部不良数量的返工，再提交复检"
+        }
+      ],
+      "steps": [
+        {
+          "call": "defect_record.transition",
+          "map": {
+            "id": "params.defectId",
+            "version": "guards[0].result.version",
+            "to": {
+              "const": "RECHECK"
+            },
+            "reason": {
+              "const": "返工完成，等待复检"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "code": "disposeDefect",
+      "name": "不良品处置",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "defectId",
+          "label": "不良处置单",
+          "type": "ref",
+          "ref": "defect_record",
+          "required": true
+        },
+        {
+          "name": "decision",
+          "label": "处置决定",
+          "type": "enum",
+          "required": true,
+          "options": [
+            {
+              "value": "SCRAPPED",
+              "label": "报废"
+            },
+            {
+              "value": "RETURNED",
+              "label": "退货"
+            },
+            {
+              "value": "CONCESSION",
+              "label": "让步接收"
+            }
+          ]
+        },
+        {
+          "name": "reason",
+          "label": "处置依据与审批说明",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "defect_record.read",
+          "map": {
+            "id": "params.defectId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "ISOLATED"
+            }
+          },
+          "message": "仅已隔离的处置单可以决策"
+        },
+        {
+          "call": "service.countHistoricalBatchAssemblies",
+          "map": {
+            "batchId": "guards[0].result.batchId"
+          },
+          "condition": {
+            "any": [
+              {
+                "left": "params.decision",
+                "op": "eq",
+                "right": {
+                  "const": "CONCESSION"
+                }
+              },
+              {
+                "left": "result.total",
+                "op": "eq",
+                "right": {
+                  "const": 0
+                }
+              }
+            ]
+          },
+          "message": "此批次有装机履历，须返工更换或经批准让步接收，不能直接报废放行"
+        }
+      ],
+      "steps": [
+        {
+          "call": "defect_record.transition",
+          "map": {
+            "id": "params.defectId",
+            "version": "guards[0].result.version",
+            "to": "params.decision",
+            "reason": "params.reason"
+          }
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "guards[0].result.batchId"
+          },
+          "when": {
+            "left": "params.decision",
+            "op": "eq",
+            "right": {
+              "const": "CONCESSION"
+            }
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "guards[0].result.batchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": "guards[0].result.qty",
+            "version": "steps[1].result.version"
+          },
+          "when": {
+            "left": "params.decision",
+            "op": "eq",
+            "right": {
+              "const": "CONCESSION"
+            }
+          }
+        },
+        {
+          "call": "service.releaseAffected",
+          "map": {
+            "batchId": "guards[0].result.batchId"
+          }
+        }
+      ]
+    },
+    {
+      "code": "createWorkOrder",
+      "name": "创建生产工单",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "orderNo",
+          "label": "工单编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "product",
+          "label": "产品名称",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "plannedQty",
+          "label": "计划数量",
+          "type": "integer",
+          "min": 1,
+          "required": true
+        },
+        {
+          "name": "remark",
+          "label": "备注",
+          "type": "text",
+          "defaultValue": null
+        }
+      ],
+      "guards": [],
+      "steps": [
+        {
+          "call": "work_order.create",
+          "map": {
+            "orderNo": "params.orderNo",
+            "product": "params.product",
+            "plannedQty": "params.plannedQty",
+            "remark": "params.remark"
+          }
+        }
+      ]
+    },
+    {
+      "code": "advanceWorkOrder",
+      "name": "推进生产工单",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        },
+        {
+          "name": "to",
+          "label": "目标状态",
+          "type": "enum",
+          "required": true,
+          "options": [
+            {
+              "value": "ASSEMBLING",
+              "label": "开始/回到装配"
+            },
+            {
+              "value": "TESTING",
+              "label": "提交检验"
+            },
+            {
+              "value": "COMPLETED",
+              "label": "完成工单"
+            }
+          ]
+        }
+      ],
+      "guards": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "ne",
+            "right": {
+              "const": "FROZEN"
+            }
+          },
+          "message": "冻结工单须先处理质量异常，不可手工推进"
+        }
+      ],
+      "steps": [
+        {
+          "call": "work_order.transition",
+          "map": {
+            "id": "params.workOrderId",
+            "version": "guards[0].result.version",
+            "to": "params.to"
+          }
+        },
+        {
+          "call": "service.checkBomKit",
+          "map": {
+            "workOrderId": "params.workOrderId"
+          },
+          "when": {
+            "all": [
+              {
+                "left": "guards[0].result.bomId",
+                "op": "ne",
+                "right": {
+                  "const": null
+                }
+              },
+              {
+                "left": "params.to",
+                "op": "in",
+                "right": {
+                  "const": [
+                    "TESTING",
+                    "COMPLETED"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return": "steps[0].result"
+    },
+    {
+      "code": "registerAssembly",
+      "name": "登记整机装配",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "sn",
+          "label": "整机序列号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        },
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "remark",
+          "label": "备注",
+          "type": "text",
+          "defaultValue": null
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          },
+          "condition": {
+            "left": "result.qualityStatus",
+            "op": "eq",
+            "right": {
+              "const": "GOOD"
+            }
+          },
+          "message": "必须使用良品批次"
+        },
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "ASSEMBLING"
+            }
+          },
+          "message": "工单必须处于装配中"
+        },
+        {
+          "call": "defect_record.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "batchId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.batchId"
+              },
+              {
+                "field": {
+                  "const": "status"
+                },
+                "op": {
+                  "const": "in"
+                },
+                "value": {
+                  "const": [
+                    "PENDING",
+                    "ISOLATED",
+                    "REWORK",
+                    "RECHECK"
+                  ]
+                }
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": {
+              "const": 0
+            }
+          },
+          "message": "该批次存在未结质量异常，暂不允许装配"
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.update",
+          "map": {
+            "id": "params.batchId",
+            "version": "guards[0].result.version",
+            "remark": "guards[0].result.remark"
+          }
+        },
+        {
+          "call": "work_order.update",
+          "map": {
+            "id": "params.workOrderId",
+            "version": "guards[1].result.version",
+            "remark": "guards[1].result.remark"
+          }
+        },
+        {
+          "call": "assembly_record.create",
+          "map": {
+            "sn": "params.sn",
+            "batchId": "params.batchId",
+            "workOrderId": "params.workOrderId",
+            "remark": "params.remark"
+          }
+        },
+        {
+          "call": "assembly_component.create",
+          "map": {
+            "assemblyId": "steps[2].result.id",
+            "batchId": "params.batchId",
+            "slot": {
+              "const": "PRIMARY"
+            },
+            "qty": {
+              "const": 1
+            },
+            "active": {
+              "const": true
+            },
+            "remark": {
+              "const": "整机主要零件批次"
+            }
+          }
+        },
+        {
+          "call": "service.validateBomAssemblyCount",
+          "map": {
+            "workOrderId": "params.workOrderId"
+          },
+          "when": {
+            "left": "guards[1].result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          }
+        },
+        {
+          "call": "service.validateBomAllocation",
+          "map": {
+            "workOrderId": "params.workOrderId",
+            "batchId": "params.batchId",
+            "slot": {
+              "const": "PRIMARY"
+            },
+            "qty": {
+              "const": 1
+            }
+          },
+          "when": {
+            "left": "guards[1].result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          }
+        },
+        {
+          "call": "material_consumption.create",
+          "map": {
+            "workOrderId": "params.workOrderId",
+            "batchId": "params.batchId",
+            "assemblyId": "steps[2].result.id",
+            "slot": {
+              "const": "PRIMARY"
+            },
+            "qty": {
+              "const": 1
+            }
+          },
+          "when": {
+            "left": "guards[1].result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          }
+        }
+      ],
+      "return": "steps[2].result"
+    },
+    {
+      "code": "attachComponent",
+      "name": "追加装机零件",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "assemblyId",
+          "label": "整机",
+          "type": "ref",
+          "ref": "assembly_record",
+          "required": true
+        },
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "label": "装机位置",
+          "type": "string",
+          "required": true,
+          "maxLength": 50,
+          "pattern": "(?i)(?!PRIMARY$).{1,50}"
+        },
+        {
+          "name": "qty",
+          "label": "装机数量",
+          "type": "integer",
+          "min": 1,
+          "required": true
+        },
+        {
+          "name": "remark",
+          "label": "备注",
+          "type": "text",
+          "defaultValue": null
+        }
+      ],
+      "guards": [
+        {
+          "call": "assembly_record.read",
+          "map": {
+            "id": "params.assemblyId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "RELEASED"
+            }
+          },
+          "message": "冻结整机不能追加零件，请先处理质量异常"
+        },
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "guards[0].result.workOrderId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "ASSEMBLING"
+            }
+          },
+          "message": "工单必须处于装配中"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          },
+          "condition": {
+            "left": "result.qualityStatus",
+            "op": "eq",
+            "right": {
+              "const": "GOOD"
+            }
+          },
+          "message": "必须使用良品批次"
+        },
+        {
+          "call": "defect_record.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "batchId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.batchId"
+              },
+              {
+                "field": {
+                  "const": "status"
+                },
+                "op": {
+                  "const": "in"
+                },
+                "value": {
+                  "const": [
+                    "PENDING",
+                    "ISOLATED",
+                    "REWORK",
+                    "RECHECK"
+                  ]
+                }
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": {
+              "const": 0
+            }
+          },
+          "message": "该批次存在未结异常"
+        },
+        {
+          "call": "assembly_component.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "assemblyId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.assemblyId"
+              },
+              {
+                "field": {
+                  "const": "slot"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.slot"
+              },
+              {
+                "field": {
+                  "const": "active"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": {
+                  "const": true
+                }
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": {
+              "const": 0
+            }
+          },
+          "message": "这个装机位置已经有在用零件"
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.update",
+          "map": {
+            "id": "params.batchId",
+            "version": "guards[2].result.version",
+            "remark": "guards[2].result.remark"
+          }
+        },
+        {
+          "call": "assembly_record.update",
+          "map": {
+            "id": "params.assemblyId",
+            "version": "guards[0].result.version",
+            "remark": "guards[0].result.remark"
+          }
+        },
+        {
+          "call": "work_order.update",
+          "map": {
+            "id": "guards[1].result.id",
+            "version": "guards[1].result.version",
+            "remark": "guards[1].result.remark"
+          }
+        },
+        {
+          "call": "assembly_component.create",
+          "map": {
+            "assemblyId": "params.assemblyId",
+            "batchId": "params.batchId",
+            "slot": "params.slot",
+            "qty": "params.qty",
+            "active": {
+              "const": true
+            },
+            "remark": "params.remark"
+          }
+        },
+        {
+          "call": "service.validateBomAllocation",
+          "map": {
+            "workOrderId": "guards[1].result.id",
+            "batchId": "params.batchId",
+            "slot": "params.slot",
+            "qty": "params.qty"
+          },
+          "when": {
+            "left": "guards[1].result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          }
+        },
+        {
+          "call": "material_consumption.create",
+          "map": {
+            "workOrderId": "guards[1].result.id",
+            "batchId": "params.batchId",
+            "assemblyId": "params.assemblyId",
+            "slot": "params.slot",
+            "qty": "params.qty"
+          },
+          "when": {
+            "left": "guards[1].result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          }
+        }
+      ],
+      "return": "steps[3].result"
+    },
+    {
+      "code": "replaceComponent",
+      "name": "返工更换装机零件",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "componentId",
+          "label": "换下的装机零件",
+          "type": "ref",
+          "ref": "assembly_component",
+          "required": true,
+          "refFilters": [
+            {
+              "field": "active",
+              "op": "eq",
+              "value": true
+            }
+          ]
+        },
+        {
+          "name": "defectId",
+          "label": "不良处置单",
+          "type": "ref",
+          "ref": "defect_record",
+          "required": true
+        },
+        {
+          "name": "replacementBatchId",
+          "label": "补领良品批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "returnBatchId",
+          "label": "旧件退回不良批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "reason",
+          "label": "返工更换说明",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "assembly_component.read",
+          "map": {
+            "id": "params.componentId"
+          },
+          "condition": {
+            "left": "result.active",
+            "op": "eq",
+            "right": {
+              "const": true
+            }
+          },
+          "message": "该零件已换下，不可再次更换"
+        },
+        {
+          "call": "defect_record.read",
+          "map": {
+            "id": "params.defectId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.status",
+                "op": "in",
+                "right": {
+                  "const": [
+                    "ISOLATED",
+                    "REWORK"
+                  ]
+                }
+              },
+              {
+                "left": "result.batchId",
+                "op": "eq",
+                "right": "guards[0].result.batchId"
+              }
+            ]
+          },
+          "message": "处置单状态或零件批次不匹配"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "guards[0].result.batchId"
+          }
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.replacementBatchId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.qualityStatus",
+                "op": "eq",
+                "right": {
+                  "const": "GOOD"
+                }
+              },
+              {
+                "left": "result.partName",
+                "op": "eq",
+                "right": "guards[2].result.partName"
+              }
+            ]
+          },
+          "message": "补领批次必须为同种零件的良品"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.returnBatchId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.qualityStatus",
+                "op": "eq",
+                "right": {
+                  "const": "BAD"
+                }
+              },
+              {
+                "left": "result.partName",
+                "op": "eq",
+                "right": "guards[2].result.partName"
+              }
+            ]
+          },
+          "message": "退回批次必须为同种零件的不良品"
+        },
+        {
+          "call": "assembly_record.read",
+          "map": {
+            "id": "guards[0].result.assemblyId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "HOLD"
+            }
+          },
+          "message": "返工更换要求整机已冻结"
+        },
+        {
+          "call": "rework_record.aggregate",
+          "map": {
+            "filters": [
+              {
+                "field": {
+                  "const": "defectId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.defectId"
+              }
+            ],
+            "metrics": {
+              "const": [
+                {
+                  "op": "sum",
+                  "field": "qty",
+                  "as": "reworked"
+                }
+              ]
+            }
+          },
+          "condition": {
+            "left": {
+              "add": [
+                "result.records[0].reworked",
+                "guards[0].result.qty"
+              ]
+            },
+            "op": "le",
+            "right": "guards[1].result.qty"
+          },
+          "message": "更换数量超过该处置单尚未返工的数量"
+        },
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "guards[5].result.workOrderId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "FROZEN"
+            }
+          },
+          "message": "工单必须处于质量冻结状态"
+        }
+      ],
+      "steps": [
+        {
+          "call": "defect_record.update",
+          "map": {
+            "id": "params.defectId",
+            "version": "guards[1].result.version",
+            "remark": "guards[1].result.remark"
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.replacementBatchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": {
+              "negate": "guards[0].result.qty"
+            },
+            "version": "guards[3].result.version"
+          }
+        },
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.returnBatchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": "guards[0].result.qty",
+            "version": "guards[4].result.version"
+          }
+        },
+        {
+          "call": "assembly_component.update",
+          "map": {
+            "id": "params.componentId",
+            "version": "guards[0].result.version",
+            "active": {
+              "const": false
+            }
+          }
+        },
+        {
+          "call": "assembly_component.create",
+          "map": {
+            "assemblyId": "guards[0].result.assemblyId",
+            "batchId": "params.replacementBatchId",
+            "slot": "guards[0].result.slot",
+            "qty": "guards[0].result.qty",
+            "active": {
+              "const": true
+            },
+            "remark": "params.reason"
+          }
+        },
+        {
+          "call": "assembly_record.update",
+          "map": {
+            "id": "guards[5].result.id",
+            "version": "guards[5].result.version",
+            "remark": "guards[5].result.remark"
+          }
+        },
+        {
+          "call": "assembly_record.update",
+          "when": {
+            "left": "guards[0].result.slot",
+            "op": "eq",
+            "right": {
+              "const": "PRIMARY"
+            }
+          },
+          "map": {
+            "id": "guards[5].result.id",
+            "version": "steps[5].result.version",
+            "batchId": "params.replacementBatchId"
+          }
+        },
+        {
+          "call": "work_order.update",
+          "map": {
+            "id": "guards[7].result.id",
+            "version": "guards[7].result.version",
+            "remark": "guards[7].result.remark"
+          }
+        },
+        {
+          "call": "component_change.create",
+          "map": {
+            "assemblyId": "guards[5].result.id",
+            "defectId": "params.defectId",
+            "oldComponentId": "params.componentId",
+            "newComponentId": "steps[4].result.id",
+            "fromBatchId": "guards[0].result.batchId",
+            "toBatchId": "params.replacementBatchId",
+            "qty": "guards[0].result.qty",
+            "reason": "params.reason"
+          }
+        },
+        {
+          "call": "rework_record.create",
+          "map": {
+            "defectId": "params.defectId",
+            "replacementBatchId": "params.replacementBatchId",
+            "returnBatchId": "params.returnBatchId",
+            "qty": "guards[0].result.qty",
+            "remark": "params.reason"
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.replacementBatchId",
+            "qty": "guards[0].result.qty",
+            "type": {
+              "const": "REWORK_ISSUE"
+            },
+            "remark": "params.reason"
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.returnBatchId",
+            "qty": "guards[0].result.qty",
+            "type": {
+              "const": "RETURN_BAD"
+            },
+            "remark": "params.reason"
+          }
+        },
+        {
+          "call": "defect_record.transition",
+          "when": {
+            "left": "guards[1].result.status",
+            "op": "eq",
+            "right": {
+              "const": "ISOLATED"
+            }
+          },
+          "map": {
+            "id": "params.defectId",
+            "version": "steps[0].result.version",
+            "to": {
+              "const": "REWORK"
+            },
+            "reason": "params.reason"
+          }
+        }
+      ],
+      "return": {
+        "component": "steps[4].result",
+        "history": "steps[8].result"
+      }
+    },
+    {
+      "code": "countActiveBatchAssemblies",
+      "name": "内部批次装机全局校验",
+      "internalOnly": true,
+      "systemScope": true,
+      "transactional": true,
+      "params": [
+        {
+          "name": "batchId",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true,
+          "label": "零件批次"
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.related",
+          "map": {
+            "id": "params.batchId",
+            "model": {
+              "const": "assembly_record"
+            },
+            "paths": {
+              "const": [
+                [
+                  {
+                    "model": "assembly_record",
+                    "field": "batchId",
+                    "direction": "in"
+                  }
+                ],
+                [
+                  {
+                    "model": "assembly_component",
+                    "field": "batchId",
+                    "direction": "in",
+                    "filters": [
+                      {
+                        "field": "active",
+                        "op": "eq",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "model": "assembly_record",
+                    "field": "assemblyId",
+                    "direction": "out"
+                  }
+                ]
+              ]
+            },
+            "pageSize": {
+              "const": 1
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          }
+        }
+      ],
+      "return": {
+        "total": "guards[0].result.total"
+      }
+    },
+    {
+      "code": "countHistoricalBatchAssemblies",
+      "name": "内部批次装机全局校验",
+      "internalOnly": true,
+      "systemScope": true,
+      "transactional": true,
+      "params": [
+        {
+          "name": "batchId",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true,
+          "label": "零件批次"
+        }
+      ],
+      "guards": [
+        {
+          "call": "part_batch.related",
+          "map": {
+            "id": "params.batchId",
+            "model": {
+              "const": "assembly_record"
+            },
+            "paths": {
+              "const": [
+                [
+                  {
+                    "model": "assembly_record",
+                    "field": "batchId",
+                    "direction": "in"
+                  }
+                ],
+                [
+                  {
+                    "model": "assembly_component",
+                    "field": "batchId",
+                    "direction": "in"
+                  },
+                  {
+                    "model": "assembly_record",
+                    "field": "assemblyId",
+                    "direction": "out"
+                  }
+                ]
+              ]
+            },
+            "pageSize": {
+              "const": 1
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          }
+        }
+      ],
+      "return": {
+        "total": "guards[0].result.total"
+      }
+    }
+  ]
+}

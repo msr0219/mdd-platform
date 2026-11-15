@@ -1,0 +1,183 @@
+{
+  "model": {
+    "code": "assembly_record",
+    "name": "整机追溯",
+    "table": "t_assembly_record",
+    "serviceOnly": true,
+    "displayTemplate": "{sn} · 工单#{workOrderId}",
+    "rowScope": {
+      "via": "workOrderId"
+    }
+  },
+  "fields": [
+    {
+      "code": "sn",
+      "name": "整机序列号",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "unique": true
+    },
+    {
+      "code": "workOrderId",
+      "name": "生产工单",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "work_order",
+      "required": true
+    },
+    {
+      "code": "batchId",
+      "name": "零件批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "assembledAt",
+      "name": "装配时间",
+      "type": "datetime",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "status",
+      "name": "整机状态",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "defaultValue": "RELEASED",
+      "options": [
+        {
+          "value": "RELEASED",
+          "label": "可放行"
+        },
+        {
+          "value": "HOLD",
+          "label": "已冻结"
+        }
+      ]
+    }
+  ],
+  "stateMachine": {
+    "field": "status",
+    "initial": "RELEASED",
+    "transitions": [
+      {
+        "from": "RELEASED",
+        "to": "HOLD"
+      },
+      {
+        "from": "HOLD",
+        "to": "RELEASED"
+      }
+    ]
+  },
+  "relations": [
+    {
+      "code": "current_batches",
+      "name": "当前全部零件批次",
+      "target": "part_batch",
+      "paths": [
+        [
+          {
+            "model": "part_batch",
+            "field": "batchId",
+            "direction": "out"
+          }
+        ],
+        [
+          {
+            "model": "assembly_component",
+            "field": "assemblyId",
+            "direction": "in",
+            "filters": [
+              {
+                "field": "active",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "model": "part_batch",
+            "field": "batchId",
+            "direction": "out"
+          }
+        ]
+      ]
+    },
+    {
+      "code": "open_defects",
+      "name": "关联异常与更换处置",
+      "target": "defect_record",
+      "paths": [
+        [
+          {
+            "model": "part_batch",
+            "field": "batchId",
+            "direction": "out"
+          },
+          {
+            "model": "defect_record",
+            "field": "batchId",
+            "direction": "in"
+          }
+        ],
+        [
+          {
+            "model": "assembly_component",
+            "field": "assemblyId",
+            "direction": "in",
+            "filters": [
+              {
+                "field": "active",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "model": "part_batch",
+            "field": "batchId",
+            "direction": "out"
+          },
+          {
+            "model": "defect_record",
+            "field": "batchId",
+            "direction": "in"
+          }
+        ],
+        [
+          {
+            "model": "component_change",
+            "field": "assemblyId",
+            "direction": "in"
+          },
+          {
+            "model": "defect_record",
+            "field": "defectId",
+            "direction": "out"
+          }
+        ]
+      ]
+    }
+  ]
+}

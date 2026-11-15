@@ -1,0 +1,59 @@
+{
+  "model": {
+    "code": "rework_record",
+    "name": "返工记录",
+    "table": "t_rework_record",
+    "appendOnly": true,
+    "serviceOnly": true
+  },
+  "fields": [
+    {
+      "code": "defectId",
+      "name": "处置单",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "defect_record",
+      "required": true
+    },
+    {
+      "code": "replacementBatchId",
+      "name": "补领批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "returnBatchId",
+      "name": "退回不良批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "qty",
+      "name": "返工数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

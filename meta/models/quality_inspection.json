@@ -1,0 +1,98 @@
+{
+  "model": {
+    "code": "quality_inspection",
+    "name": "检验记录",
+    "table": "t_quality_inspection",
+    "appendOnly": true,
+    "serviceOnly": true,
+    "attachments": true
+  },
+  "fields": [
+    {
+      "code": "batchId",
+      "name": "批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "defectId",
+      "name": "不良处置单",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "defect_record"
+    },
+    {
+      "code": "supplier",
+      "name": "供应商",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "phase",
+      "name": "检验阶段",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "options": [
+        {
+          "value": "IQC",
+          "label": "来料检验"
+        },
+        {
+          "value": "RECHECK",
+          "label": "返工复检"
+        }
+      ]
+    },
+    {
+      "code": "testedQty",
+      "name": "检验数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    },
+    {
+      "code": "passedQty",
+      "name": "合格数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 0
+    },
+    {
+      "code": "workHours",
+      "name": "检验/返工工时",
+      "type": "decimal",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "precision": 10,
+      "scale": 2,
+      "min": 0,
+      "defaultValue": 0
+    },
+    {
+      "code": "remark",
+      "name": "检验说明",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

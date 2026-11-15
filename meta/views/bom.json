@@ -1,0 +1,193 @@
+{
+  "views": [
+    {
+      "code": "product_bom_list",
+      "name": "产品BOM版本",
+      "type": "list",
+      "model": "product_bom",
+      "search": {
+        "fields": [
+          {
+            "field": "code",
+            "op": "like"
+          },
+          {
+            "field": "product",
+            "op": "like"
+          },
+          {
+            "field": "status",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "code",
+            "title": "BOM编码"
+          },
+          {
+            "field": "product",
+            "title": "产品名称"
+          },
+          {
+            "field": "revision",
+            "title": "版本号"
+          },
+          {
+            "field": "status",
+            "title": "版本状态"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": [
+          {
+            "code": "create",
+            "name": "创建版本",
+            "action": "service:createBom",
+            "parameters": true
+          },
+          {
+            "code": "addItem",
+            "name": "添加零件",
+            "action": "service:addBomItem",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "bomId": "row.id"
+            },
+            "when": "row.status == 'DRAFT'"
+          },
+          {
+            "code": "publish",
+            "name": "发布版本",
+            "action": "service:publishBom",
+            "rowSelected": true,
+            "map": {
+              "requestId": "$requestId",
+              "bomId": "row.id"
+            },
+            "when": "row.status == 'DRAFT'",
+            "confirm": "确认发布此BOM版本？发布后明细将不可修改。"
+          }
+        ]
+      },
+      "description": "先创建草稿并添加零件位置；位置使用大写字母、数字、下划线或连字符，例如PRIMARY、DIMM_A。PRIMARY单机用量必须为1，发布后通过新建版本调整配置。"
+    },
+    {
+      "code": "bom_item_list",
+      "name": "BOM零件明细",
+      "type": "list",
+      "model": "bom_item",
+      "search": {
+        "fields": [
+          {
+            "field": "bomId",
+            "op": "eq"
+          },
+          {
+            "field": "slot",
+            "op": "like"
+          },
+          {
+            "field": "partName",
+            "op": "like"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "bomId",
+            "title": "BOM版本"
+          },
+          {
+            "field": "slot",
+            "title": "装机位置"
+          },
+          {
+            "field": "partName",
+            "title": "零件名称"
+          },
+          {
+            "field": "qty",
+            "title": "单机用量"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": [
+          {
+            "code": "remove",
+            "name": "删除草稿明细",
+            "action": "service:removeBomItem",
+            "rowSelected": true,
+            "map": {
+              "requestId": "$requestId",
+              "itemId": "row.id"
+            },
+            "confirm": "仅允许删除草稿BOM的明细，确认继续？"
+          }
+        ]
+      }
+    },
+    {
+      "code": "material_consumption_list",
+      "name": "装机领料核销",
+      "type": "list",
+      "model": "material_consumption",
+      "search": {
+        "fields": [
+          {
+            "field": "workOrderId",
+            "op": "eq"
+          },
+          {
+            "field": "assemblyId",
+            "op": "eq"
+          },
+          {
+            "field": "batchId",
+            "op": "eq"
+          },
+          {
+            "field": "slot",
+            "op": "like"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "workOrderId",
+            "title": "生产工单"
+          },
+          {
+            "field": "assemblyId",
+            "title": "整机"
+          },
+          {
+            "field": "batchId",
+            "title": "零件批次"
+          },
+          {
+            "field": "slot",
+            "title": "装机位置"
+          },
+          {
+            "field": "qty",
+            "title": "核销数量"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": []
+      }
+    }
+  ]
+}

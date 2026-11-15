@@ -1,0 +1,268 @@
+{
+  "views": [
+    {
+      "code": "part_batch_list",
+      "name": "零件批次管理",
+      "type": "list",
+      "model": "part_batch",
+      "description": "零件批次数据与业务操作",
+      "search": {
+        "fields": [
+          {
+            "field": "batchNo",
+            "name": "批次编号",
+            "op": "like"
+          },
+          {
+            "field": "partName",
+            "name": "零件名称",
+            "op": "like"
+          },
+          {
+            "field": "quantity",
+            "name": "库存数量",
+            "op": "eq"
+          },
+          {
+            "field": "qualityStatus",
+            "name": "质量状态",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "batchNo",
+            "title": "批次编号"
+          },
+          {
+            "field": "partName",
+            "title": "零件名称"
+          },
+          {
+            "field": "quantity",
+            "title": "库存数量"
+          },
+          {
+            "field": "qualityStatus",
+            "title": "质量状态"
+          },
+          {
+            "field": "supplier",
+            "title": "供应商"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": [
+          {
+            "code": "create",
+            "name": "新增",
+            "action": "openForm:part_batch_form"
+          },
+          {
+            "code": "edit",
+            "name": "编辑",
+            "rowSelected": true,
+            "action": "openForm:part_batch_form"
+          },
+          {
+            "code": "delete",
+            "name": "删除",
+            "rowSelected": true,
+            "action": "service:part_batch.delete",
+            "confirm": "确定删除所选记录吗？此操作需要当前记录版本。"
+          },
+          {
+            "code": "issue",
+            "name": "生产领料",
+            "action": "service:issueMaterial",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "batchId": "row.id"
+            },
+            "when": "row.qualityStatus == 'GOOD'"
+          },
+          {
+            "code": "isolate",
+            "name": "登记不良",
+            "action": "service:registerDefect",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "batchId": "row.id"
+            },
+            "when": "row.qualityStatus == 'GOOD'"
+          },
+          {
+            "code": "iqc",
+            "name": "来料检验",
+            "action": "service:inspectIncoming",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "batchId": "row.id"
+            },
+            "when": "row.qualityStatus == 'GOOD' || row.qualityStatus == 'PENDING'"
+          }
+        ]
+      }
+    },
+    {
+      "code": "part_batch_form",
+      "name": "零件批次表单",
+      "type": "form",
+      "model": "part_batch",
+      "fields": [
+        {
+          "field": "batchNo",
+          "span": 12
+        },
+        {
+          "field": "partName",
+          "span": 12
+        },
+        {
+          "field": "quantity",
+          "span": 12
+        },
+        {
+          "field": "qualityStatus",
+          "span": 12
+        },
+        {
+          "field": "supplier",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:part_batch.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    },
+    {
+      "code": "stock_movement_list",
+      "name": "库存流水管理",
+      "type": "list",
+      "model": "stock_movement",
+      "description": "生产领料、余料退库、不良隔离与返工流水；仅首次装机核销扣减生产领料余额，返工用料独立核算。",
+      "search": {
+        "fields": [
+          {
+            "field": "batchId",
+            "name": "零件批次",
+            "op": "eq"
+          },
+          {
+            "field": "workOrderId",
+            "name": "生产工单",
+            "op": "eq"
+          },
+          {
+            "field": "type",
+            "name": "流水类型",
+            "op": "eq"
+          },
+          {
+            "field": "qty",
+            "name": "数量",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "batchId",
+            "title": "零件批次"
+          },
+          {
+            "field": "workOrderId",
+            "title": "生产工单"
+          },
+          {
+            "field": "type",
+            "title": "流水类型"
+          },
+          {
+            "field": "qty",
+            "title": "数量"
+          },
+          {
+            "field": "remark",
+            "title": "原因/备注"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": []
+      }
+    },
+    {
+      "code": "stock_movement_form",
+      "name": "库存流水表单",
+      "type": "form",
+      "model": "stock_movement",
+      "fields": [
+        {
+          "field": "batchId",
+          "span": 12
+        },
+        {
+          "field": "workOrderId",
+          "span": 12
+        },
+        {
+          "field": "type",
+          "span": 12
+        },
+        {
+          "field": "qty",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:stock_movement.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    }
+  ]
+}

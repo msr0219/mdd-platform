@@ -1,0 +1,572 @@
+{
+  "views": [
+    {
+      "code": "defect_record_list",
+      "name": "不良处置管理",
+      "type": "list",
+      "model": "defect_record",
+      "description": "不良处置数据与业务操作",
+      "search": {
+        "fields": [
+          {
+            "field": "batchId",
+            "name": "来源批次",
+            "op": "eq"
+          },
+          {
+            "field": "qty",
+            "name": "不良数量",
+            "op": "eq"
+          },
+          {
+            "field": "reason",
+            "name": "不良原因",
+            "op": "like"
+          },
+          {
+            "field": "status",
+            "name": "处置状态",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "batchId",
+            "title": "来源批次"
+          },
+          {
+            "field": "qty",
+            "title": "不良数量"
+          },
+          {
+            "field": "reason",
+            "title": "不良原因"
+          },
+          {
+            "field": "status",
+            "title": "处置状态"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": [
+          {
+            "code": "create",
+            "name": "新增",
+            "action": "openForm:defect_record_form"
+          },
+          {
+            "code": "edit",
+            "name": "编辑",
+            "rowSelected": true,
+            "action": "openForm:defect_record_form"
+          },
+          {
+            "code": "delete",
+            "name": "删除",
+            "rowSelected": true,
+            "action": "service:defect_record.delete",
+            "confirm": "确定删除所选记录吗？此操作需要当前记录版本。"
+          },
+          {
+            "code": "rework",
+            "name": "未装机库存返工",
+            "action": "service:rework",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "defectId": "row.id"
+            },
+            "when": "row.status == 'ISOLATED' || row.status == 'REWORK'"
+          },
+          {
+            "code": "dispose",
+            "name": "处置决策",
+            "action": "service:disposeDefect",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "defectId": "row.id"
+            },
+            "when": "row.status == 'ISOLATED'"
+          },
+          {
+            "code": "submit",
+            "name": "提交复检",
+            "action": "service:submitForRecheck",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "defectId": "row.id"
+            },
+            "when": "row.status == 'REWORK'"
+          },
+          {
+            "code": "recheck",
+            "name": "登记复检",
+            "action": "service:submitRecheck",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "defectId": "row.id"
+            },
+            "when": "row.status == 'RECHECK'"
+          }
+        ]
+      }
+    },
+    {
+      "code": "defect_record_form",
+      "name": "不良处置表单",
+      "type": "form",
+      "model": "defect_record",
+      "fields": [
+        {
+          "field": "batchId",
+          "span": 12
+        },
+        {
+          "field": "qty",
+          "span": 12
+        },
+        {
+          "field": "reason",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:defect_record.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    },
+    {
+      "code": "rework_record_list",
+      "name": "返工记录管理",
+      "type": "list",
+      "model": "rework_record",
+      "description": "返工记录数据与业务操作",
+      "search": {
+        "fields": [
+          {
+            "field": "defectId",
+            "name": "处置单",
+            "op": "eq"
+          },
+          {
+            "field": "replacementBatchId",
+            "name": "补领批次",
+            "op": "eq"
+          },
+          {
+            "field": "returnBatchId",
+            "name": "退回不良批次",
+            "op": "eq"
+          },
+          {
+            "field": "qty",
+            "name": "返工数量",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "defectId",
+            "title": "处置单"
+          },
+          {
+            "field": "replacementBatchId",
+            "title": "补领批次"
+          },
+          {
+            "field": "returnBatchId",
+            "title": "退回不良批次"
+          },
+          {
+            "field": "qty",
+            "title": "返工数量"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": []
+      }
+    },
+    {
+      "code": "rework_record_form",
+      "name": "返工记录表单",
+      "type": "form",
+      "model": "rework_record",
+      "fields": [
+        {
+          "field": "defectId",
+          "span": 12
+        },
+        {
+          "field": "replacementBatchId",
+          "span": 12
+        },
+        {
+          "field": "returnBatchId",
+          "span": 12
+        },
+        {
+          "field": "qty",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:rework_record.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    },
+    {
+      "code": "quality_inspection_list",
+      "name": "质量检验与指标",
+      "model": "quality_inspection",
+      "type": "list",
+      "search": {
+        "fields": [
+          {
+            "field": "phase",
+            "name": "阶段",
+            "op": "eq"
+          },
+          {
+            "field": "supplier",
+            "name": "供应商",
+            "op": "like"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "batchId",
+            "title": "批次"
+          },
+          {
+            "field": "defectId",
+            "title": "不良处置单"
+          },
+          {
+            "field": "supplier",
+            "title": "供应商"
+          },
+          {
+            "field": "phase",
+            "title": "检验阶段"
+          },
+          {
+            "field": "testedQty",
+            "title": "检验数量"
+          },
+          {
+            "field": "passedQty",
+            "title": "合格数量"
+          },
+          {
+            "field": "workHours",
+            "title": "检验/返工工时"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": []
+      },
+      "analytics": {
+        "title": "质量指标（已登记检验记录口径）",
+        "groupBy": [
+          "supplier",
+          "phase"
+        ],
+        "measures": [
+          {
+            "op": "sum",
+            "field": "testedQty",
+            "as": "tested"
+          },
+          {
+            "op": "sum",
+            "field": "passedQty",
+            "as": "passed"
+          },
+          {
+            "op": "sum",
+            "field": "workHours",
+            "as": "hours"
+          }
+        ],
+        "ratios": [
+          {
+            "name": "合格率",
+            "numerator": "passed",
+            "denominator": "tested"
+          },
+          {
+            "name": "不良率",
+            "numerator": "tested",
+            "subtract": "passed",
+            "denominator": "tested"
+          }
+        ]
+      },
+      "chart": [
+        {
+          "code": "supplier_defect",
+          "title": "供应商检验不良率",
+          "type": "bar",
+          "description": "按供应商和检验阶段汇总已登记数量；重复检验分别计入，不代表整机直通率。",
+          "groupBy": [
+            "supplier",
+            "phase"
+          ],
+          "groupNames": [
+            "供应商",
+            "阶段"
+          ],
+          "metrics": [
+            {
+              "op": "sum",
+              "field": "testedQty",
+              "as": "tested"
+            },
+            {
+              "op": "sum",
+              "field": "passedQty",
+              "as": "passed"
+            },
+            {
+              "op": "sum",
+              "field": "workHours",
+              "as": "hours"
+            }
+          ],
+          "ratios": [
+            {
+              "as": "defectRate",
+              "numerator": "tested",
+              "subtract": "passed",
+              "denominator": "tested"
+            }
+          ],
+          "series": [
+            {
+              "field": "defectRate",
+              "name": "不良率",
+              "percent": true
+            }
+          ]
+        },
+        {
+          "code": "inspection_hours",
+          "title": "检验与返工工时",
+          "type": "bar",
+          "groupBy": [
+            "supplier",
+            "phase"
+          ],
+          "groupNames": [
+            "供应商",
+            "阶段"
+          ],
+          "metrics": [
+            {
+              "op": "sum",
+              "field": "workHours",
+              "as": "hours"
+            }
+          ],
+          "series": [
+            {
+              "field": "hours",
+              "name": "工时"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "machine_inspection_list",
+      "name": "整机检验与直通率",
+      "type": "list",
+      "model": "machine_inspection",
+      "description": "登记逐台整机检验，按首次检验结果计算一次通过率。",
+      "search": {
+        "fields": [
+          {
+            "field": "workOrderId",
+            "name": "生产工单",
+            "op": "eq"
+          },
+          {
+            "field": "assemblyId",
+            "name": "整机",
+            "op": "eq"
+          },
+          {
+            "field": "result",
+            "name": "检验结果",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "assemblyId",
+            "title": "整机"
+          },
+          {
+            "field": "workOrderId",
+            "title": "生产工单"
+          },
+          {
+            "field": "result",
+            "title": "检验结果"
+          },
+          {
+            "field": "workHours",
+            "title": "检验工时"
+          },
+          {
+            "field": "created_at",
+            "title": "登记时间"
+          },
+          {
+            "field": "remark",
+            "title": "检验说明"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": [
+          {
+            "code": "inspect",
+            "name": "登记整机检验",
+            "action": "service:inspectMachine",
+            "parameters": true
+          }
+        ]
+      },
+      "chart": [
+        {
+          "code": "first_pass",
+          "title": "整机直通率（首次检验）",
+          "type": "bar",
+          "description": "每台整机按记录编号取第一条有效检验记录。直通率=首次通过台数÷首次受检台数；复检不改变首次结果。先确定首次记录，再应用页面筛选；未登记检验的整机不计入分母。",
+          "groupBy": [
+            "workOrderId"
+          ],
+          "groupNames": [
+            "生产工单"
+          ],
+          "categoryPrefix": "工单#",
+          "firstBy": "assemblyId",
+          "metrics": [
+            {
+              "op": "sum",
+              "field": "testedQty",
+              "as": "tested"
+            },
+            {
+              "op": "sum",
+              "field": "passedQty",
+              "as": "passed"
+            }
+          ],
+          "ratios": [
+            {
+              "as": "firstPassRate",
+              "numerator": "passed",
+              "denominator": "tested"
+            }
+          ],
+          "series": [
+            {
+              "field": "firstPassRate",
+              "name": "直通率",
+              "percent": true
+            }
+          ]
+        },
+        {
+          "code": "first_pass_counts",
+          "title": "首次受检与通过台数",
+          "type": "line",
+          "groupBy": [
+            "workOrderId"
+          ],
+          "groupNames": [
+            "生产工单"
+          ],
+          "categoryPrefix": "工单#",
+          "firstBy": "assemblyId",
+          "metrics": [
+            {
+              "op": "sum",
+              "field": "testedQty",
+              "as": "tested"
+            },
+            {
+              "op": "sum",
+              "field": "passedQty",
+              "as": "passed"
+            }
+          ],
+          "series": [
+            {
+              "field": "tested",
+              "name": "首次受检台数"
+            },
+            {
+              "field": "passed",
+              "name": "首次通过台数"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+Database=H2 in-memory
+Rows=1000000
+Scenario=name LIKE '%学生9%', pageSize=20, count+list
+Samples=30
+P95_ms=123.0571
+Scope=service layer, single caller, excludes HTTP/auth/network

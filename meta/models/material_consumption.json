@@ -1,0 +1,67 @@
+{
+  "model": {
+    "code": "material_consumption",
+    "name": "初装领料核销",
+    "table": "t_material_consumption",
+    "appendOnly": true,
+    "serviceOnly": true,
+    "rowScope": {
+      "via": "workOrderId"
+    }
+  },
+  "fields": [
+    {
+      "code": "workOrderId",
+      "name": "生产工单",
+      "type": "ref",
+      "ref": "work_order",
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "index": true
+    },
+    {
+      "code": "batchId",
+      "name": "零件批次",
+      "type": "ref",
+      "ref": "part_batch",
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "index": true
+    },
+    {
+      "code": "assemblyId",
+      "name": "整机",
+      "type": "ref",
+      "ref": "assembly_record",
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "index": true
+    },
+    {
+      "code": "slot",
+      "name": "装机位置",
+      "type": "string",
+      "length": 50,
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "qty",
+      "name": "核销数量",
+      "type": "integer",
+      "min": 1,
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

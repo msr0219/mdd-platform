@@ -1,0 +1,58 @@
+{
+  "model": {
+    "code": "course",
+    "name": "课程",
+    "table": "t_course"
+  },
+  "fields": [
+    {
+      "code": "courseNo",
+      "name": "课程编号",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "unique": true,
+      "length": 30
+    },
+    {
+      "code": "name",
+      "name": "课程名称",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 80
+    },
+    {
+      "code": "credits",
+      "name": "学分",
+      "type": "decimal",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "min": 0,
+      "max": 20,
+      "precision": 6,
+      "scale": 2
+    },
+    {
+      "code": "teacher",
+      "name": "授课教师",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

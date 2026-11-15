@@ -1,0 +1,174 @@
+{
+  "student": [
+    {
+      "studentNo": "2026001",
+      "name": "林知夏",
+      "gender": "F",
+      "age": 20,
+      "enrollDate": "2026-09-01",
+      "remark": "软件工程专业"
+    },
+    {
+      "studentNo": "2026002",
+      "name": "陈宇航",
+      "gender": "M",
+      "age": 21,
+      "enrollDate": "2026-09-01"
+    },
+    {
+      "studentNo": "2026003",
+      "name": "周亦安",
+      "gender": "M",
+      "age": 20,
+      "enrollDate": "2026-09-01"
+    }
+  ],
+  "course": [
+    {
+      "courseNo": "CS101",
+      "name": "Java 程序设计",
+      "credits": 4,
+      "teacher": "王老师"
+    },
+    {
+      "courseNo": "CS202",
+      "name": "数据库原理",
+      "credits": 3,
+      "teacher": "李老师"
+    },
+    {
+      "courseNo": "CS303",
+      "name": "软件工程实训",
+      "credits": 5,
+      "teacher": "张老师"
+    }
+  ],
+  "part_batch": [
+    {
+      "batchNo": "MB-202611-001",
+      "partName": "主板 B760",
+      "quantity": 120,
+      "qualityStatus": "GOOD",
+      "supplier": "华信电子"
+    },
+    {
+      "batchNo": "MEM-202611-002",
+      "partName": "内存 DDR5 16G",
+      "quantity": 240,
+      "qualityStatus": "GOOD",
+      "supplier": "海辰存储"
+    },
+    {
+      "batchNo": "MB-BAD-202611",
+      "partName": "主板 B760",
+      "quantity": 3,
+      "qualityStatus": "BAD",
+      "supplier": "华信电子",
+      "remark": "返工退旧收货批次"
+    },
+    {
+      "batchNo": "SSD-202611-003",
+      "partName": "固态硬盘 1TB",
+      "quantity": 80,
+      "qualityStatus": "PENDING",
+      "supplier": "海辰存储"
+    },
+    {
+      "batchNo": "PSU-202611-004",
+      "partName": "电源 650W",
+      "quantity": 12,
+      "qualityStatus": "QUARANTINED",
+      "supplier": "启源电气",
+      "remark": "待供应商复核"
+    }
+  ],
+  "work_order": [
+    {
+      "orderNo": "WO-202611-001",
+      "product": "开发工作站 Pro",
+      "plannedQty": 50,
+      "_transitions": [
+        "ASSEMBLING"
+      ]
+    },
+    {
+      "orderNo": "WO-202611-002",
+      "product": "办公主机 Air",
+      "plannedQty": 100
+    },
+    {
+      "orderNo": "WO-202611-003",
+      "product": "图形工作站 Max",
+      "plannedQty": 20,
+      "_transitions": [
+        "ASSEMBLING",
+        "TESTING"
+      ]
+    }
+  ],
+  "assembly_record": [
+    {
+      "sn": "PC-202611-0001",
+      "workOrderId": 1,
+      "batchId": 1,
+      "assembledAt": "2026-11-09T09:30:00",
+      "remark": "主板批次追溯示例"
+    },
+    {
+      "sn": "PC-202611-0002",
+      "workOrderId": 1,
+      "batchId": 1,
+      "assembledAt": "2026-11-09T10:00:00"
+    },
+    {
+      "sn": "PC-202611-0003",
+      "workOrderId": 3,
+      "batchId": 2,
+      "assembledAt": "2026-11-09T14:20:00"
+    }
+  ],
+  "defect_record": [
+    {
+      "batchId": 1,
+      "qty": 2,
+      "reason": "外观损伤，检验后隔离",
+      "_transitions": [
+        "ISOLATED"
+      ]
+    },
+    {
+      "batchId": 1,
+      "qty": 1,
+      "reason": "上电检测异常",
+      "_transitions": [
+        "ISOLATED",
+        "REWORK",
+        "RECHECK"
+      ]
+    }
+  ],
+  "stock_movement": [
+    {
+      "batchId": 1,
+      "workOrderId": 1,
+      "type": "ISSUE",
+      "qty": 5,
+      "remark": "演示初始领料流水"
+    },
+    {
+      "batchId": 1,
+      "type": "ISOLATE",
+      "qty": 2,
+      "remark": "演示已隔离不良数量，不计入良品可用库存"
+    }
+  ],
+  "rework_record": [
+    {
+      "defectId": 2,
+      "replacementBatchId": 1,
+      "returnBatchId": 3,
+      "qty": 1,
+      "remark": "演示复检中的返工记录"
+    }
+  ]
+}

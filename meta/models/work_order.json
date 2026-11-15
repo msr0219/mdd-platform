@@ -1,0 +1,154 @@
+{
+  "model": {
+    "code": "work_order",
+    "name": "生产工单",
+    "table": "t_work_order",
+    "serviceOnly": true,
+    "displayTemplate": "{orderNo} · {product} · {status}",
+    "rowScope": {
+      "creator": true
+    }
+  },
+  "fields": [
+    {
+      "code": "orderNo",
+      "name": "工单编号",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "unique": true
+    },
+    {
+      "code": "product",
+      "name": "产品名称",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true
+    },
+    {
+      "code": "plannedQty",
+      "name": "计划数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    },
+    {
+      "code": "status",
+      "name": "工单状态",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "options": [
+        {
+          "value": "PLANNED",
+          "label": "待生产"
+        },
+        {
+          "value": "ASSEMBLING",
+          "label": "装配中"
+        },
+        {
+          "value": "TESTING",
+          "label": "待检验"
+        },
+        {
+          "value": "COMPLETED",
+          "label": "已完成"
+        },
+        {
+          "value": "FROZEN",
+          "label": "已冻结"
+        }
+      ]
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "previousStatus",
+      "name": "冻结前状态",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "hidden": true
+    },
+    {
+      "code": "bomId",
+      "name": "BOM版本",
+      "type": "ref",
+      "ref": "product_bom",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "index": true
+    }
+  ],
+  "stateMachine": {
+    "field": "status",
+    "initial": "PLANNED",
+    "transitions": [
+      {
+        "from": "PLANNED",
+        "to": "ASSEMBLING"
+      },
+      {
+        "from": "ASSEMBLING",
+        "to": "TESTING"
+      },
+      {
+        "from": "TESTING",
+        "to": "ASSEMBLING"
+      },
+      {
+        "from": "TESTING",
+        "to": "COMPLETED"
+      },
+      {
+        "from": "PLANNED",
+        "to": "FROZEN"
+      },
+      {
+        "from": "FROZEN",
+        "to": "PLANNED"
+      },
+      {
+        "from": "ASSEMBLING",
+        "to": "FROZEN"
+      },
+      {
+        "from": "FROZEN",
+        "to": "ASSEMBLING"
+      },
+      {
+        "from": "TESTING",
+        "to": "FROZEN"
+      },
+      {
+        "from": "FROZEN",
+        "to": "TESTING"
+      },
+      {
+        "from": "COMPLETED",
+        "to": "FROZEN"
+      },
+      {
+        "from": "FROZEN",
+        "to": "COMPLETED"
+      }
+    ]
+  }
+}

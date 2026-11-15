@@ -1,0 +1,121 @@
+{
+  "menus": [
+    {
+      "code": "education",
+      "name": "教学示例",
+      "order": 1,
+      "children": [
+        {
+          "code": "student",
+          "name": "学生管理",
+          "view": "student_list",
+          "order": 0
+        },
+        {
+          "code": "course",
+          "name": "课程管理",
+          "view": "course_list",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "code": "production",
+      "name": "生产装配",
+      "order": 2,
+      "children": [
+        {
+          "code": "part_batch",
+          "name": "零件批次",
+          "view": "part_batch_list",
+          "order": 0
+        },
+        {
+          "code": "work_order",
+          "name": "生产工单",
+          "view": "work_order_list",
+          "order": 1
+        },
+        {
+          "code": "assembly_record",
+          "name": "整机追溯",
+          "view": "assembly_record_list",
+          "order": 2
+        },
+        {
+          "code": "defect_record",
+          "name": "不良处置",
+          "view": "defect_record_list",
+          "order": 3
+        },
+        {
+          "code": "stock_movement",
+          "name": "库存流水",
+          "view": "stock_movement_list",
+          "order": 4
+        },
+        {
+          "code": "rework_record",
+          "name": "返工记录",
+          "view": "rework_record_list",
+          "order": 5
+        },
+        {
+          "code": "quality_inspection",
+          "name": "质量检验与指标",
+          "view": "quality_inspection_list",
+          "order": 20
+        },
+        {
+          "code": "assembly_component",
+          "name": "装机零件明细",
+          "view": "assembly_component_list",
+          "order": 4
+        },
+        {
+          "code": "component_change",
+          "name": "零件更换历史",
+          "view": "component_change_list",
+          "order": 5
+        },
+        {
+          "code": "machine_inspection",
+          "name": "整机检验与直通率",
+          "view": "machine_inspection_list",
+          "order": 21
+        }
+      ]
+    },
+    {
+      "code": "bom_management",
+      "name": "BOM与用料",
+      "order": 3,
+      "children": [
+        {
+          "code": "product_bom",
+          "name": "产品BOM版本",
+          "view": "product_bom_list",
+          "order": 1
+        },
+        {
+          "code": "bom_item",
+          "name": "BOM零件明细",
+          "view": "bom_item_list",
+          "order": 2
+        },
+        {
+          "code": "material_consumption",
+          "name": "装机领料核销",
+          "view": "material_consumption_list",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "code": "equipment",
+      "name": "设备管理",
+      "view": "equipment_list",
+      "order": 30
+    }
+  ]
+}

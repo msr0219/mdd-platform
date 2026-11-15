@@ -1,0 +1,250 @@
+{
+  "views": [
+    {
+      "code": "student_list",
+      "name": "学生管理",
+      "type": "list",
+      "model": "student",
+      "description": "学生基础信息",
+      "search": {
+        "fields": [
+          {
+            "field": "studentNo",
+            "name": "学号",
+            "op": "like"
+          },
+          {
+            "field": "name",
+            "name": "姓名",
+            "op": "like"
+          },
+          {
+            "field": "gender",
+            "name": "性别",
+            "op": "eq"
+          },
+          {
+            "field": "age",
+            "name": "年龄",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "studentNo",
+            "title": "学号"
+          },
+          {
+            "field": "name",
+            "title": "姓名"
+          },
+          {
+            "field": "gender",
+            "title": "性别"
+          },
+          {
+            "field": "age",
+            "title": "年龄"
+          },
+          {
+            "field": "enrollDate",
+            "title": "入学日期"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": [
+          {
+            "code": "create",
+            "name": "新增",
+            "action": "openForm:student_form"
+          },
+          {
+            "code": "edit",
+            "name": "编辑",
+            "rowSelected": true,
+            "action": "openForm:student_form"
+          },
+          {
+            "code": "delete",
+            "name": "删除",
+            "rowSelected": true,
+            "action": "service:student.delete",
+            "confirm": "确定删除所选记录吗？此操作需要当前记录版本。"
+          }
+        ]
+      }
+    },
+    {
+      "code": "student_form",
+      "name": "学生表单",
+      "type": "form",
+      "model": "student",
+      "fields": [
+        {
+          "field": "studentNo",
+          "span": 12
+        },
+        {
+          "field": "name",
+          "span": 12
+        },
+        {
+          "field": "gender",
+          "span": 12
+        },
+        {
+          "field": "age",
+          "span": 12
+        },
+        {
+          "field": "enrollDate",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:student.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    },
+    {
+      "code": "course_list",
+      "name": "课程管理",
+      "type": "list",
+      "model": "course",
+      "description": "课程数据与业务操作",
+      "search": {
+        "fields": [
+          {
+            "field": "courseNo",
+            "name": "课程编号",
+            "op": "like"
+          },
+          {
+            "field": "name",
+            "name": "课程名称",
+            "op": "like"
+          },
+          {
+            "field": "credits",
+            "name": "学分",
+            "op": "eq"
+          },
+          {
+            "field": "teacher",
+            "name": "授课教师",
+            "op": "like"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "courseNo",
+            "title": "课程编号"
+          },
+          {
+            "field": "name",
+            "title": "课程名称"
+          },
+          {
+            "field": "credits",
+            "title": "学分"
+          },
+          {
+            "field": "teacher",
+            "title": "授课教师"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": [
+          {
+            "code": "create",
+            "name": "新增",
+            "action": "openForm:course_form"
+          },
+          {
+            "code": "edit",
+            "name": "编辑",
+            "rowSelected": true,
+            "action": "openForm:course_form"
+          },
+          {
+            "code": "delete",
+            "name": "删除",
+            "rowSelected": true,
+            "action": "service:course.delete",
+            "confirm": "确定删除所选记录吗？此操作需要当前记录版本。"
+          }
+        ]
+      }
+    },
+    {
+      "code": "course_form",
+      "name": "课程表单",
+      "type": "form",
+      "model": "course",
+      "fields": [
+        {
+          "field": "courseNo",
+          "span": 12
+        },
+        {
+          "field": "name",
+          "span": 12
+        },
+        {
+          "field": "credits",
+          "span": 12
+        },
+        {
+          "field": "teacher",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:course.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "model": {
+    "code": "part_batch",
+    "name": "零件批次",
+    "table": "t_part_batch",
+    "serviceOnly": true,
+    "displayTemplate": "{batchNo} · {partName} · {qualityStatus} · 库存{quantity}"
+  },
+  "fields": [
+    {
+      "code": "batchNo",
+      "name": "批次编号",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "unique": true,
+      "length": 50
+    },
+    {
+      "code": "partName",
+      "name": "零件名称",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 80
+    },
+    {
+      "code": "quantity",
+      "name": "库存数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 0
+    },
+    {
+      "code": "qualityStatus",
+      "name": "质量状态",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "options": [
+        {
+          "value": "GOOD",
+          "label": "良品"
+        },
+        {
+          "value": "PENDING",
+          "label": "待检"
+        },
+        {
+          "value": "BAD",
+          "label": "不良"
+        },
+        {
+          "value": "QUARANTINED",
+          "label": "隔离"
+        }
+      ]
+    },
+    {
+      "code": "supplier",
+      "name": "供应商",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ],
+  "relations": [
+    {
+      "code": "current_assemblies",
+      "name": "当前装机整机（含全部零件）",
+      "target": "assembly_record",
+      "paths": [
+        [
+          {
+            "model": "assembly_record",
+            "field": "batchId",
+            "direction": "in"
+          }
+        ],
+        [
+          {
+            "model": "assembly_component",
+            "field": "batchId",
+            "direction": "in",
+            "filters": [
+              {
+                "field": "active",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          {
+            "model": "assembly_record",
+            "field": "assemblyId",
+            "direction": "out"
+          }
+        ]
+      ]
+    },
+    {
+      "code": "historical_assemblies",
+      "name": "历史装机整机（含已换下零件）",
+      "target": "assembly_record",
+      "paths": [
+        [
+          {
+            "model": "assembly_record",
+            "field": "batchId",
+            "direction": "in"
+          }
+        ],
+        [
+          {
+            "model": "assembly_component",
+            "field": "batchId",
+            "direction": "in"
+          },
+          {
+            "model": "assembly_record",
+            "field": "assemblyId",
+            "direction": "out"
+          }
+        ]
+      ]
+    }
+  ]
+}

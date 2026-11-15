@@ -1,0 +1,162 @@
+{
+  "model": {
+    "code": "defect_record",
+    "name": "不良处置",
+    "table": "t_defect_record",
+    "serviceOnly": true,
+    "attachments": true
+  },
+  "fields": [
+    {
+      "code": "batchId",
+      "name": "来源批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "qty",
+      "name": "不良数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    },
+    {
+      "code": "reason",
+      "name": "不良原因",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true
+    },
+    {
+      "code": "status",
+      "name": "处置状态",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "options": [
+        {
+          "value": "PENDING",
+          "label": "待处置"
+        },
+        {
+          "value": "ISOLATED",
+          "label": "已隔离"
+        },
+        {
+          "value": "REWORK",
+          "label": "返工中"
+        },
+        {
+          "value": "RECHECK",
+          "label": "待复检"
+        },
+        {
+          "value": "CLOSED",
+          "label": "已关闭"
+        },
+        {
+          "value": "RETURNED",
+          "label": "已退货"
+        },
+        {
+          "value": "SCRAPPED",
+          "label": "已报废"
+        },
+        {
+          "value": "CONCESSION",
+          "label": "让步接收"
+        }
+      ]
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "defectCode",
+      "name": "不良代码",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "station",
+      "name": "发现工位",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "evidenceUrl",
+      "name": "凭证链接",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "length": 1000
+    },
+    {
+      "code": "workOrderId",
+      "name": "关联工单",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "work_order"
+    }
+  ],
+  "stateMachine": {
+    "field": "status",
+    "initial": "PENDING",
+    "transitions": [
+      {
+        "from": "PENDING",
+        "to": "ISOLATED"
+      },
+      {
+        "from": "ISOLATED",
+        "to": "REWORK"
+      },
+      {
+        "from": "REWORK",
+        "to": "RECHECK"
+      },
+      {
+        "from": "RECHECK",
+        "to": "CLOSED"
+      },
+      {
+        "from": "RECHECK",
+        "to": "REWORK"
+      },
+      {
+        "from": "ISOLATED",
+        "to": "RETURNED"
+      },
+      {
+        "from": "ISOLATED",
+        "to": "SCRAPPED"
+      },
+      {
+        "from": "ISOLATED",
+        "to": "CONCESSION"
+      }
+    ]
+  }
+}

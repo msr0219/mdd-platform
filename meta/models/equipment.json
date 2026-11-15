@@ -1,0 +1,93 @@
+{
+  "model": {
+    "code": "equipment",
+    "name": "设备",
+    "table": "t_equipment",
+    "rowScope": {
+      "creator": true
+    }
+  },
+  "fields": [
+    {
+      "code": "name",
+      "name": "设备名称",
+      "type": "string",
+      "length": 100,
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "serialNo",
+      "name": "设备编号",
+      "type": "string",
+      "length": 60,
+      "required": true,
+      "unique": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "category",
+      "name": "设备类别",
+      "type": "string",
+      "length": 60,
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "quantity",
+      "name": "数量",
+      "type": "integer",
+      "min": 0,
+      "required": true,
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "defaultValue": 0
+    },
+    {
+      "code": "location",
+      "name": "存放位置",
+      "type": "string",
+      "length": 100,
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "status",
+      "name": "设备状态",
+      "type": "enum",
+      "options": [
+        {
+          "value": "AVAILABLE",
+          "label": "可用"
+        },
+        {
+          "value": "IN_USE",
+          "label": "使用中"
+        },
+        {
+          "value": "MAINTENANCE",
+          "label": "维修中"
+        }
+      ],
+      "defaultValue": "AVAILABLE",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

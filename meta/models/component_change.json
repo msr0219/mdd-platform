@@ -1,0 +1,95 @@
+{
+  "model": {
+    "code": "component_change",
+    "name": "零件更换历史",
+    "table": "t_component_change",
+    "appendOnly": true,
+    "serviceOnly": true,
+    "rowScope": {
+      "via": "assemblyId"
+    }
+  },
+  "fields": [
+    {
+      "code": "assemblyId",
+      "name": "整机",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "assembly_record",
+      "required": true,
+      "index": true
+    },
+    {
+      "code": "defectId",
+      "name": "不良处置单",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "defect_record",
+      "required": true,
+      "index": true
+    },
+    {
+      "code": "oldComponentId",
+      "name": "换下的装机零件",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "assembly_component",
+      "required": true
+    },
+    {
+      "code": "newComponentId",
+      "name": "换上的装机零件",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "assembly_component",
+      "required": true
+    },
+    {
+      "code": "fromBatchId",
+      "name": "原批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "toBatchId",
+      "name": "新批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "qty",
+      "name": "更换数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "min": 1,
+      "required": true
+    },
+    {
+      "code": "reason",
+      "name": "更换说明",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true
+    }
+  ]
+}

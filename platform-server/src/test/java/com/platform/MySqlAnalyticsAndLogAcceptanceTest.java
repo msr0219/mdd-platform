@@ -1,0 +1,10 @@
+package com.platform;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.*;
+import java.nio.file.*;
+@EnabledIfEnvironmentVariable(named="MYSQL_TEST_URL",matches="jdbc:mysql:.*")
+@SpringBootTest(properties={"spring.datasource.url=${MYSQL_TEST_URL}","spring.datasource.username=${MYSQL_TEST_USERNAME}","spring.datasource.password=${MYSQL_TEST_PASSWORD}","platform.demo.enabled=false","platform.auth.bootstrap-password=InitialTest!12345"})
+class MySqlAnalyticsAndLogAcceptanceTest extends AnalyticsAndLogContract {
+    @DynamicPropertySource static void props(DynamicPropertyRegistry r){r.add("platform.meta-dir",()->(Files.isDirectory(Path.of("../meta"))?Path.of("../meta"):Path.of("meta")).toAbsolutePath().toString());}
+}

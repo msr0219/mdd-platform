@@ -1,0 +1,53 @@
+{
+  "model": {
+    "code": "bom_item",
+    "name": "BOM零件明细",
+    "table": "t_bom_item",
+    "serviceOnly": true,
+    "displayTemplate": "BOM#{bomId} · {slot} · {partName} · {qty}件"
+  },
+  "fields": [
+    {
+      "code": "bomId",
+      "name": "BOM版本",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "product_bom",
+      "required": true,
+      "index": true
+    },
+    {
+      "code": "slot",
+      "name": "装机位置",
+      "pattern": "[A-Z][A-Z0-9_-]{0,49}",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 50
+    },
+    {
+      "code": "partName",
+      "name": "零件名称",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 255
+    },
+    {
+      "code": "qty",
+      "name": "单机用量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    }
+  ]
+}

@@ -1,0 +1,509 @@
+{
+  "services": [
+    {
+      "code": "validateBomAllocation",
+      "name": "校验BOM位置和领料余额",
+      "transactional": true,
+      "internalOnly": true,
+      "params": [
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        },
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "label": "装机位置",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "qty",
+          "label": "装机数量",
+          "type": "integer",
+          "required": true,
+          "min": 1
+        }
+      ],
+      "guards": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          }
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          }
+        },
+        {
+          "call": "bom_item.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "bomId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "guards[0].result.bomId"
+              },
+              {
+                "field": {
+                  "const": "slot"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.slot"
+              }
+            ]
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.total",
+                "op": "eq",
+                "right": {
+                  "const": 1
+                }
+              },
+              {
+                "left": "result.records[0].partName",
+                "op": "eq",
+                "right": "guards[1].result.partName"
+              },
+              {
+                "left": "result.records[0].qty",
+                "op": "eq",
+                "right": "params.qty"
+              }
+            ]
+          },
+          "message": "装机位置、零件种类或数量与工单BOM不一致"
+        },
+        {
+          "call": "service.materialBalance",
+          "map": {
+            "workOrderId": "params.workOrderId",
+            "batchId": "params.batchId"
+          },
+          "condition": {
+            "left": "params.qty",
+            "op": "le",
+            "right": "result.availableQty"
+          },
+          "message": "该工单该批次的剩余领料不足（已扣除装机核销和余料退库），请先生产领料"
+        }
+      ],
+      "steps": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          }
+        }
+      ]
+    },
+    {
+      "code": "validateBomAssemblyCount",
+      "name": "校验计划装配台数",
+      "transactional": true,
+      "internalOnly": true,
+      "params": [
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          }
+        },
+        {
+          "call": "assembly_record.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "workOrderId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.workOrderId"
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "le",
+            "right": "guards[0].result.plannedQty"
+          },
+          "message": "装配台数超过工单计划数量"
+        }
+      ],
+      "steps": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          }
+        }
+      ]
+    },
+    {
+      "code": "checkBomSlot",
+      "name": "检查单个BOM位置",
+      "transactional": true,
+      "internalOnly": true,
+      "params": [
+        {
+          "name": "assemblyId",
+          "label": "整机",
+          "type": "ref",
+          "ref": "assembly_record",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "label": "装机位置",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "partName",
+          "label": "partName",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "qty",
+          "label": "装机数量",
+          "type": "integer",
+          "required": true,
+          "min": 1
+        }
+      ],
+      "guards": [
+        {
+          "call": "assembly_component.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "assemblyId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.assemblyId"
+              },
+              {
+                "field": {
+                  "const": "slot"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.slot"
+              },
+              {
+                "field": {
+                  "const": "active"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": {
+                  "const": true
+                }
+              }
+            ]
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.total",
+                "op": "eq",
+                "right": {
+                  "const": 1
+                }
+              },
+              {
+                "left": "result.records[0].qty",
+                "op": "eq",
+                "right": "params.qty"
+              }
+            ]
+          },
+          "message": "存在缺件、重复位置或装机数量不符，请在零件明细补齐"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "guards[0].result.records[0].batchId"
+          },
+          "condition": {
+            "left": "result.partName",
+            "op": "eq",
+            "right": "params.partName"
+          },
+          "message": "装机零件种类与BOM不一致"
+        }
+      ],
+      "steps": [
+        {
+          "call": "assembly_record.read",
+          "map": {
+            "id": "params.assemblyId"
+          }
+        }
+      ]
+    },
+    {
+      "code": "checkBomAssemblyKit",
+      "name": "检查整机BOM齐套",
+      "transactional": true,
+      "internalOnly": true,
+      "params": [
+        {
+          "name": "assemblyId",
+          "label": "整机",
+          "type": "ref",
+          "ref": "assembly_record",
+          "required": true
+        },
+        {
+          "name": "bomId",
+          "label": "BOM版本",
+          "type": "ref",
+          "ref": "product_bom",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "assembly_record.read",
+          "map": {
+            "id": "params.assemblyId"
+          },
+          "condition": {
+            "left": "result.status",
+            "op": "eq",
+            "right": {
+              "const": "RELEASED"
+            }
+          },
+          "message": "存在冻结整机，请先处理质量异常"
+        },
+        {
+          "call": "bom_item.list",
+          "map": {
+            "pageSize": {
+              "const": 100
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "bomId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.bomId"
+              }
+            ]
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.total",
+                "op": "gt",
+                "right": {
+                  "const": 0
+                }
+              },
+              {
+                "left": "result.total",
+                "op": "le",
+                "right": {
+                  "const": 100
+                }
+              }
+            ]
+          },
+          "message": "BOM明细为空或超出100项"
+        },
+        {
+          "call": "assembly_component.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "assemblyId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.assemblyId"
+              },
+              {
+                "field": {
+                  "const": "active"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": {
+                  "const": true
+                }
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": "guards[1].result.total"
+          },
+          "message": "整机零件位置未齐套或包含额外位置"
+        }
+      ],
+      "steps": [
+        {
+          "forEach": "guards[1].result.records",
+          "steps": [
+            {
+              "call": "service.checkBomSlot",
+              "map": {
+                "assemblyId": "params.assemblyId",
+                "slot": "item.slot",
+                "partName": "item.partName",
+                "qty": "item.qty"
+              }
+            }
+          ]
+        }
+      ],
+      "return": "guards[0].result"
+    },
+    {
+      "code": "checkBomKit",
+      "name": "检查工单齐套",
+      "transactional": true,
+      "internalOnly": false,
+      "params": [
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          },
+          "condition": {
+            "left": "result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          },
+          "message": "该工单未绑定BOM，请使用BOM创建生产工单"
+        },
+        {
+          "call": "assembly_record.list",
+          "map": {
+            "pageSize": {
+              "const": 200
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "workOrderId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.workOrderId"
+              }
+            ]
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.total",
+                "op": "eq",
+                "right": "guards[0].result.plannedQty"
+              },
+              {
+                "left": "result.total",
+                "op": "le",
+                "right": {
+                  "const": 200
+                }
+              }
+            ]
+          },
+          "message": "装配台数尚未达到计划数量或超过200台检查上限"
+        }
+      ],
+      "steps": [
+        {
+          "forEach": "guards[1].result.records",
+          "steps": [
+            {
+              "call": "service.checkBomAssemblyKit",
+              "map": {
+                "assemblyId": "item.id",
+                "bomId": "guards[0].result.bomId"
+              }
+            }
+          ]
+        }
+      ],
+      "return": {
+        "workOrderId": "params.workOrderId",
+        "assemblies": "guards[1].result.total",
+        "ready": {
+          "const": true
+        }
+      }
+    }
+  ]
+}

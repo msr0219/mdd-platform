@@ -1,0 +1,415 @@
+{
+  "services": [
+    {
+      "code": "materialBalance",
+      "name": "查询领料余额",
+      "transactional": true,
+      "permission": "data:read",
+      "description": "仅统计BOM工单的生产领料、首次装机核销和余料退库。返工补领及旧件退库单独核算；显示余额仅供参考，退库提交时会重新校验。",
+      "submitLabel": "查询余额",
+      "params": [
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        },
+        {
+          "name": "batchId",
+          "label": "零件批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        }
+      ],
+      "guards": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          },
+          "condition": {
+            "left": "result.bomId",
+            "op": "ne",
+            "right": {
+              "const": null
+            }
+          },
+          "message": "仅BOM工单有完整的初装核销，普通工单暂不支持余料核算"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          }
+        },
+        {
+          "call": "stock_movement.aggregate",
+          "map": {
+            "filters": [
+              {
+                "field": {
+                  "const": "workOrderId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.workOrderId"
+              },
+              {
+                "field": {
+                  "const": "batchId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.batchId"
+              },
+              {
+                "field": {
+                  "const": "type"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": {
+                  "const": "ISSUE"
+                }
+              }
+            ],
+            "metrics": {
+              "const": [
+                {
+                  "op": "sum",
+                  "field": "qty",
+                  "as": "issued"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "call": "material_consumption.aggregate",
+          "map": {
+            "filters": [
+              {
+                "field": {
+                  "const": "workOrderId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.workOrderId"
+              },
+              {
+                "field": {
+                  "const": "batchId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.batchId"
+              }
+            ],
+            "metrics": {
+              "const": [
+                {
+                  "op": "sum",
+                  "field": "qty",
+                  "as": "consumed"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "call": "stock_movement.aggregate",
+          "map": {
+            "filters": [
+              {
+                "field": {
+                  "const": "workOrderId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.workOrderId"
+              },
+              {
+                "field": {
+                  "const": "batchId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.batchId"
+              },
+              {
+                "field": {
+                  "const": "type"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": {
+                  "const": "RETURN_UNUSED"
+                }
+              }
+            ],
+            "metrics": {
+              "const": [
+                {
+                  "op": "sum",
+                  "field": "qty",
+                  "as": "returned"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          }
+        }
+      ],
+      "return": {
+        "orderNo": "guards[0].result.orderNo",
+        "batchNo": "guards[1].result.batchNo",
+        "partName": "guards[1].result.partName",
+        "issuedQty": "guards[2].result.records[0].issued",
+        "consumedQty": "guards[3].result.records[0].consumed",
+        "returnedQty": "guards[4].result.records[0].returned",
+        "availableQty": {
+          "subtract": [
+            "guards[2].result.records[0].issued",
+            "guards[3].result.records[0].consumed",
+            "guards[4].result.records[0].returned"
+          ]
+        }
+      },
+      "resultFields": [
+        {
+          "field": "orderNo",
+          "label": "工单编号"
+        },
+        {
+          "field": "batchNo",
+          "label": "批次编号"
+        },
+        {
+          "field": "partName",
+          "label": "零件名称"
+        },
+        {
+          "field": "issuedQty",
+          "label": "累计生产领料"
+        },
+        {
+          "field": "consumedQty",
+          "label": "累计装机核销"
+        },
+        {
+          "field": "returnedQty",
+          "label": "累计余料退库"
+        },
+        {
+          "field": "availableQty",
+          "label": "当前可退数量"
+        }
+      ]
+    },
+    {
+      "code": "returnUnusedMaterial",
+      "name": "未用料退库",
+      "transactional": true,
+      "idempotencyKey": "requestId",
+      "description": "仅限BOM工单未装机的余料，按原批次退回仓库。冻结工单、非良品批次和未结质量异常不能退库；已装机或返工用料不在此入口退回。",
+      "params": [
+        {
+          "name": "requestId",
+          "label": "请求编号",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "workOrderId",
+          "label": "生产工单",
+          "type": "ref",
+          "ref": "work_order",
+          "required": true
+        },
+        {
+          "name": "batchId",
+          "label": "原领料批次",
+          "type": "ref",
+          "ref": "part_batch",
+          "required": true
+        },
+        {
+          "name": "qty",
+          "label": "退库数量",
+          "type": "integer",
+          "required": true,
+          "min": 1
+        },
+        {
+          "name": "reason",
+          "label": "退库原因",
+          "type": "text",
+          "required": true,
+          "maxLength": 1000
+        }
+      ],
+      "guards": [
+        {
+          "call": "work_order.read",
+          "map": {
+            "id": "params.workOrderId"
+          },
+          "condition": {
+            "all": [
+              {
+                "left": "result.bomId",
+                "op": "ne",
+                "right": {
+                  "const": null
+                }
+              },
+              {
+                "left": "result.status",
+                "op": "in",
+                "right": {
+                  "const": [
+                    "PLANNED",
+                    "ASSEMBLING",
+                    "TESTING",
+                    "COMPLETED"
+                  ]
+                }
+              }
+            ]
+          },
+          "message": "仅未冻结的BOM工单允许余料退库"
+        },
+        {
+          "call": "part_batch.read",
+          "map": {
+            "id": "params.batchId"
+          },
+          "condition": {
+            "left": "result.qualityStatus",
+            "op": "eq",
+            "right": {
+              "const": "GOOD"
+            }
+          },
+          "message": "只有原良品批次可以接收未用料退库"
+        },
+        {
+          "call": "defect_record.list",
+          "map": {
+            "pageSize": {
+              "const": 1
+            },
+            "filters": [
+              {
+                "field": {
+                  "const": "batchId"
+                },
+                "op": {
+                  "const": "eq"
+                },
+                "value": "params.batchId"
+              },
+              {
+                "field": {
+                  "const": "status"
+                },
+                "op": {
+                  "const": "in"
+                },
+                "value": {
+                  "const": [
+                    "PENDING",
+                    "ISOLATED",
+                    "REWORK",
+                    "RECHECK"
+                  ]
+                }
+              }
+            ]
+          },
+          "condition": {
+            "left": "result.total",
+            "op": "eq",
+            "right": {
+              "const": 0
+            }
+          },
+          "message": "该批次存在未结质量异常，请先完成质量处置"
+        },
+        {
+          "call": "service.materialBalance",
+          "map": {
+            "workOrderId": "params.workOrderId",
+            "batchId": "params.batchId"
+          },
+          "condition": {
+            "left": "params.qty",
+            "op": "le",
+            "right": "result.availableQty"
+          },
+          "message": "退库数量超过该工单该批次的未用领料余额，已装机或已退库材料不能重复退回"
+        }
+      ],
+      "steps": [
+        {
+          "call": "part_batch.adjust",
+          "map": {
+            "id": "params.batchId",
+            "field": {
+              "const": "quantity"
+            },
+            "delta": "params.qty",
+            "version": "guards[1].result.version"
+          }
+        },
+        {
+          "call": "work_order.update",
+          "map": {
+            "id": "params.workOrderId",
+            "version": "guards[0].result.version",
+            "remark": "guards[0].result.remark"
+          }
+        },
+        {
+          "call": "stock_movement.create",
+          "map": {
+            "batchId": "params.batchId",
+            "workOrderId": "params.workOrderId",
+            "type": {
+              "const": "RETURN_UNUSED"
+            },
+            "qty": "params.qty",
+            "remark": "params.reason"
+          }
+        }
+      ],
+      "return": {
+        "batch": "steps[0].result",
+        "movement": "steps[2].result",
+        "availableQty": {
+          "subtract": [
+            "guards[3].result.availableQty",
+            "params.qty"
+          ]
+        }
+      }
+    }
+  ]
+}

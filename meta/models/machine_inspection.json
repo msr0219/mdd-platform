@@ -1,0 +1,12 @@
+{
+  "model": {"code":"machine_inspection","name":"整机检验","table":"t_machine_inspection","appendOnly":true,"serviceOnly":true,"attachments":true,"rowScope":{"via":"assemblyId"}},
+  "fields": [
+    {"code":"assemblyId","name":"整机","type":"ref","ref":"assembly_record","required":true,"listable":true,"searchable":true},
+    {"code":"workOrderId","name":"生产工单","type":"ref","ref":"work_order","required":true,"listable":true,"searchable":true},
+    {"code":"result","name":"检验结果","type":"enum","required":true,"listable":true,"searchable":true,"options":[{"value":"PASS","label":"通过"},{"value":"FAIL","label":"未通过"}]},
+    {"code":"testedQty","name":"检验台数","type":"integer","required":true,"min":1,"max":1,"listable":true},
+    {"code":"passedQty","name":"通过台数","type":"integer","required":true,"min":0,"max":1,"listable":true},
+    {"code":"workHours","name":"检验工时","type":"decimal","precision":10,"scale":2,"min":0,"defaultValue":0,"listable":true},
+    {"code":"remark","name":"检验说明","type":"text","listable":true}
+  ]
+}

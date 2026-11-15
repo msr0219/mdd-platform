@@ -1,0 +1,29 @@
+{
+  "code": "assembly_primary_components",
+  "source": "assembly_record",
+  "target": "assembly_component",
+  "keyFields": [
+    "assemblyId",
+    "slot"
+  ],
+  "fields": {
+    "assemblyId": {
+      "source": "id"
+    },
+    "batchId": {
+      "source": "batchId"
+    },
+    "slot": {
+      "const": "PRIMARY"
+    },
+    "qty": {
+      "const": 1
+    },
+    "active": {
+      "const": true
+    },
+    "remark": {
+      "const": "兼容旧整机主要批次，升级时自动补齐"
+    }
+  }
+}

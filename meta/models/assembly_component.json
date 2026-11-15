@@ -1,0 +1,74 @@
+{
+  "model": {
+    "code": "assembly_component",
+    "name": "装机零件明细",
+    "table": "t_assembly_component",
+    "serviceOnly": true,
+    "displayTemplate": "整机#{assemblyId} · {slot} · 批次#{batchId} · {qty}件 · 在用:{active}",
+    "rowScope": {
+      "via": "assemblyId"
+    }
+  },
+  "fields": [
+    {
+      "code": "assemblyId",
+      "name": "整机",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "assembly_record",
+      "required": true,
+      "index": true
+    },
+    {
+      "code": "batchId",
+      "name": "零件批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true,
+      "index": true
+    },
+    {
+      "code": "slot",
+      "name": "装机位置",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 50
+    },
+    {
+      "code": "qty",
+      "name": "装机数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    },
+    {
+      "code": "active",
+      "name": "当前在用",
+      "type": "boolean",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "defaultValue": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

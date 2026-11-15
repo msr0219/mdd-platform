@@ -1,0 +1,78 @@
+{
+  "model": {
+    "code": "student",
+    "name": "学生",
+    "description": "学生基础信息",
+    "table": "t_student",
+    "rowScope": {
+      "creator": true
+    }
+  },
+  "fields": [
+    {
+      "code": "studentNo",
+      "name": "学号",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "unique": true,
+      "length": 30
+    },
+    {
+      "code": "name",
+      "name": "姓名",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 50
+    },
+    {
+      "code": "gender",
+      "name": "性别",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "options": [
+        {
+          "value": "M",
+          "label": "男"
+        },
+        {
+          "value": "F",
+          "label": "女"
+        }
+      ]
+    },
+    {
+      "code": "age",
+      "name": "年龄",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "min": 0,
+      "max": 150
+    },
+    {
+      "code": "enrollDate",
+      "name": "入学日期",
+      "type": "date",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

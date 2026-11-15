@@ -1,0 +1,1 @@
+<template><div class="panel"><el-result icon="warning" title="页面未找到" sub-title="该页面不存在，或对应菜单已经被移除。"><template #extra><RouterLink to="/"><el-button type="primary">返回工作台</el-button></RouterLink></template></el-result></div></template>

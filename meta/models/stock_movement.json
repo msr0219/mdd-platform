@@ -1,0 +1,83 @@
+{
+  "model": {
+    "code": "stock_movement",
+    "name": "库存流水",
+    "table": "t_stock_movement",
+    "appendOnly": true,
+    "serviceOnly": true,
+    "rowScope": {
+      "via": "workOrderId",
+      "allowUnassigned": true
+    }
+  },
+  "fields": [
+    {
+      "code": "batchId",
+      "name": "零件批次",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "part_batch",
+      "required": true
+    },
+    {
+      "code": "workOrderId",
+      "name": "生产工单",
+      "type": "ref",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "ref": "work_order"
+    },
+    {
+      "code": "type",
+      "name": "流水类型",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "options": [
+        {
+          "value": "ISSUE",
+          "label": "生产领料"
+        },
+        {
+          "value": "ISOLATE",
+          "label": "不良隔离"
+        },
+        {
+          "value": "REWORK_ISSUE",
+          "label": "返工补领"
+        },
+        {
+          "value": "RETURN_BAD",
+          "label": "旧件退库"
+        },
+        {
+          "value": "RETURN_UNUSED",
+          "label": "未用料退库"
+        }
+      ]
+    },
+    {
+      "code": "qty",
+      "name": "数量",
+      "type": "integer",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "min": 1
+    },
+    {
+      "code": "remark",
+      "name": "备注",
+      "type": "text",
+      "editable": true,
+      "listable": true,
+      "searchable": true
+    }
+  ]
+}

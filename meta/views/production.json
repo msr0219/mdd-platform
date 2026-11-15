@@ -1,0 +1,409 @@
+{
+  "views": [
+    {
+      "code": "work_order_list",
+      "name": "生产工单管理",
+      "type": "list",
+      "model": "work_order",
+      "description": "按BOM创建工单可启用位置、用量、领料核销和齐套校验；普通工单沿用基础装配流程。 BOM工单支持查询领料余额及原批次余料退库。",
+      "search": {
+        "fields": [
+          {
+            "field": "orderNo",
+            "name": "工单编号",
+            "op": "like"
+          },
+          {
+            "field": "product",
+            "name": "产品名称",
+            "op": "like"
+          },
+          {
+            "field": "plannedQty",
+            "name": "计划数量",
+            "op": "eq"
+          },
+          {
+            "field": "status",
+            "name": "工单状态",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "orderNo",
+            "title": "工单编号"
+          },
+          {
+            "field": "product",
+            "title": "产品名称"
+          },
+          {
+            "field": "plannedQty",
+            "title": "计划数量"
+          },
+          {
+            "field": "status",
+            "title": "工单状态"
+          },
+          {
+            "field": "bomId",
+            "title": "BOM版本"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": [
+          {
+            "code": "create_bom_order",
+            "name": "按BOM创建工单",
+            "action": "service:createBomWorkOrder",
+            "parameters": true
+          },
+          {
+            "code": "new_order",
+            "name": "创建普通工单",
+            "action": "service:createWorkOrder",
+            "parameters": true
+          },
+          {
+            "code": "advance",
+            "name": "推进工单",
+            "action": "service:advanceWorkOrder",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "workOrderId": "row.id"
+            },
+            "when": "row.status != 'FROZEN'"
+          },
+          {
+            "code": "check_kit",
+            "name": "齐套检查",
+            "action": "service:checkBomKit",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "workOrderId": "row.id"
+            }
+          },
+          {
+            "code": "material_balance",
+            "name": "领料余额",
+            "action": "service:materialBalance",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "workOrderId": "row.id"
+            },
+            "when": "row.bomId != null"
+          },
+          {
+            "code": "return_unused",
+            "name": "余料退库",
+            "action": "service:returnUnusedMaterial",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "workOrderId": "row.id"
+            },
+            "when": "row.bomId != null && row.status != 'FROZEN'"
+          }
+        ]
+      }
+    },
+    {
+      "code": "work_order_form",
+      "name": "生产工单表单",
+      "type": "form",
+      "model": "work_order",
+      "fields": [
+        {
+          "field": "orderNo",
+          "span": 12
+        },
+        {
+          "field": "product",
+          "span": 12
+        },
+        {
+          "field": "plannedQty",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:work_order.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    },
+    {
+      "code": "assembly_record_list",
+      "name": "整机追溯管理",
+      "type": "list",
+      "model": "assembly_record",
+      "description": "整机追溯数据与业务操作",
+      "search": {
+        "fields": [
+          {
+            "field": "sn",
+            "name": "整机序列号",
+            "op": "like"
+          },
+          {
+            "field": "workOrderId",
+            "name": "生产工单",
+            "op": "eq"
+          },
+          {
+            "field": "batchId",
+            "name": "零件批次",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "sn",
+            "title": "整机序列号"
+          },
+          {
+            "field": "workOrderId",
+            "title": "生产工单"
+          },
+          {
+            "field": "batchId",
+            "title": "零件批次"
+          },
+          {
+            "field": "assembledAt",
+            "title": "装配时间"
+          }
+        ],
+        "pagination": {
+          "pageSize": 10
+        },
+        "buttons": [
+          {
+            "code": "assemble",
+            "name": "登记整机装配",
+            "action": "service:registerAssembly",
+            "parameters": true
+          },
+          {
+            "code": "attach",
+            "name": "追加零件",
+            "action": "service:attachComponent",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "assemblyId": "row.id"
+            },
+            "when": "row.status == 'RELEASED'"
+          }
+        ]
+      }
+    },
+    {
+      "code": "assembly_record_form",
+      "name": "整机追溯表单",
+      "type": "form",
+      "model": "assembly_record",
+      "fields": [
+        {
+          "field": "sn",
+          "span": 12
+        },
+        {
+          "field": "workOrderId",
+          "span": 12
+        },
+        {
+          "field": "batchId",
+          "span": 12
+        },
+        {
+          "field": "assembledAt",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:assembly_record.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    },
+    {
+      "code": "assembly_component_list",
+      "name": "装机零件明细",
+      "type": "list",
+      "model": "assembly_component",
+      "search": {
+        "fields": [
+          {
+            "field": "assemblyId",
+            "name": "整机",
+            "op": "eq"
+          },
+          {
+            "field": "batchId",
+            "name": "零件批次",
+            "op": "eq"
+          },
+          {
+            "field": "slot",
+            "name": "装机位置",
+            "op": "eq"
+          },
+          {
+            "field": "active",
+            "name": "当前在用",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "assemblyId",
+            "title": "整机"
+          },
+          {
+            "field": "batchId",
+            "title": "零件批次"
+          },
+          {
+            "field": "slot",
+            "title": "装机位置"
+          },
+          {
+            "field": "qty",
+            "title": "装机数量"
+          },
+          {
+            "field": "active",
+            "title": "当前在用"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": [
+          {
+            "code": "replace",
+            "name": "返工更换",
+            "action": "service:replaceComponent",
+            "parameters": true,
+            "rowSelected": true,
+            "map": {
+              "componentId": "row.id"
+            },
+            "when": "row.active == true"
+          }
+        ]
+      }
+    },
+    {
+      "code": "component_change_list",
+      "name": "零件更换历史",
+      "type": "list",
+      "model": "component_change",
+      "search": {
+        "fields": [
+          {
+            "field": "assemblyId",
+            "name": "整机",
+            "op": "eq"
+          },
+          {
+            "field": "defectId",
+            "name": "不良处置单",
+            "op": "eq"
+          },
+          {
+            "field": "oldComponentId",
+            "name": "换下的装机零件",
+            "op": "eq"
+          },
+          {
+            "field": "newComponentId",
+            "name": "换上的装机零件",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "assemblyId",
+            "title": "整机"
+          },
+          {
+            "field": "defectId",
+            "title": "不良处置单"
+          },
+          {
+            "field": "oldComponentId",
+            "title": "换下的装机零件"
+          },
+          {
+            "field": "newComponentId",
+            "title": "换上的装机零件"
+          },
+          {
+            "field": "fromBatchId",
+            "title": "原批次"
+          },
+          {
+            "field": "toBatchId",
+            "title": "新批次"
+          },
+          {
+            "field": "qty",
+            "title": "更换数量"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": []
+      }
+    }
+  ]
+}

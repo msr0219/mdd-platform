@@ -1,0 +1,133 @@
+{
+  "views": [
+    {
+      "code": "equipment_list",
+      "name": "设备管理",
+      "type": "list",
+      "model": "equipment",
+      "search": {
+        "fields": [
+          {
+            "field": "serialNo",
+            "name": "设备编号",
+            "op": "like"
+          },
+          {
+            "field": "name",
+            "name": "设备名称",
+            "op": "like"
+          },
+          {
+            "field": "status",
+            "name": "设备状态",
+            "op": "eq"
+          }
+        ]
+      },
+      "table": {
+        "columns": [
+          {
+            "field": "serialNo",
+            "title": "设备编号"
+          },
+          {
+            "field": "name",
+            "title": "设备名称"
+          },
+          {
+            "field": "category",
+            "title": "设备类别"
+          },
+          {
+            "field": "quantity",
+            "title": "数量"
+          },
+          {
+            "field": "location",
+            "title": "存放位置"
+          },
+          {
+            "field": "status",
+            "title": "设备状态"
+          }
+        ],
+        "pagination": {
+          "pageSize": 20
+        },
+        "buttons": [
+          {
+            "code": "create",
+            "name": "新增设备",
+            "action": "openForm:equipment_form"
+          },
+          {
+            "code": "edit",
+            "name": "编辑",
+            "rowSelected": true,
+            "action": "openForm:equipment_form"
+          },
+          {
+            "code": "delete",
+            "name": "删除",
+            "rowSelected": true,
+            "action": "service:equipment.delete",
+            "confirm": "确定删除这台设备吗？"
+          }
+        ]
+      }
+    },
+    {
+      "code": "equipment_form",
+      "name": "设备信息",
+      "type": "form",
+      "model": "equipment",
+      "fields": [
+        {
+          "field": "serialNo",
+          "span": 12
+        },
+        {
+          "field": "name",
+          "span": 12
+        },
+        {
+          "field": "category",
+          "span": 12
+        },
+        {
+          "field": "quantity",
+          "span": 12
+        },
+        {
+          "field": "location",
+          "span": 12
+        },
+        {
+          "field": "status",
+          "span": 12
+        },
+        {
+          "field": "remark",
+          "span": 24
+        }
+      ],
+      "buttons": [
+        {
+          "code": "save",
+          "name": "保存",
+          "action": "service:equipment.create",
+          "success": {
+            "message": "保存成功",
+            "close": true,
+            "refresh": true
+          }
+        },
+        {
+          "code": "cancel",
+          "name": "取消",
+          "action": "close"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "services": [{
+    "code":"inspectMachine","name":"登记整机检验","transactional":true,"idempotencyKey":"requestId",
+    "params":[
+      {"name":"requestId","label":"请求编号","type":"string","required":true},
+      {"name":"assemblyId","label":"整机","type":"ref","ref":"assembly_record","required":true},
+      {"name":"result","label":"检验结果","type":"enum","required":true,"options":[{"value":"PASS","label":"通过"},{"value":"FAIL","label":"未通过"}]},
+      {"name":"workHours","label":"检验工时","type":"decimal","min":0,"defaultValue":0},
+      {"name":"remark","label":"检验说明","type":"text","required":true,"maxLength":2000}
+    ],
+    "guards":[{"call":"assembly_record.read","map":{"id":"params.assemblyId"}}],
+    "steps":[
+      {"call":"machine_inspection.create","when":{"left":"params.result","op":"eq","right":{"const":"PASS"}},"map":{"assemblyId":"params.assemblyId","workOrderId":"guards[0].result.workOrderId","result":"params.result","testedQty":{"const":1},"passedQty":{"const":1},"workHours":"params.workHours","remark":"params.remark"}},
+      {"call":"machine_inspection.create","when":{"left":"params.result","op":"eq","right":{"const":"FAIL"}},"map":{"assemblyId":"params.assemblyId","workOrderId":"guards[0].result.workOrderId","result":"params.result","testedQty":{"const":1},"passedQty":{"const":0},"workHours":"params.workHours","remark":"params.remark"}}
+    ],
+    "return":{"assemblyId":"params.assemblyId","result":"params.result"}
+  }]
+}

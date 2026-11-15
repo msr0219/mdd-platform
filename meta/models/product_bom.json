@@ -1,0 +1,70 @@
+{
+  "model": {
+    "code": "product_bom",
+    "name": "产品BOM版本",
+    "table": "t_product_bom",
+    "serviceOnly": true,
+    "displayTemplate": "{code} · {product} · {revision} · {status}"
+  },
+  "fields": [
+    {
+      "code": "code",
+      "name": "BOM编码",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "unique": true,
+      "length": 100
+    },
+    {
+      "code": "product",
+      "name": "产品名称",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 255
+    },
+    {
+      "code": "revision",
+      "name": "版本号",
+      "type": "string",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "required": true,
+      "length": 100
+    },
+    {
+      "code": "status",
+      "name": "版本状态",
+      "type": "enum",
+      "editable": true,
+      "listable": true,
+      "searchable": true,
+      "options": [
+        {
+          "value": "DRAFT",
+          "label": "草稿"
+        },
+        {
+          "value": "PUBLISHED",
+          "label": "已发布"
+        }
+      ]
+    }
+  ],
+  "stateMachine": {
+    "field": "status",
+    "initial": "DRAFT",
+    "transitions": [
+      {
+        "from": "DRAFT",
+        "to": "PUBLISHED"
+      }
+    ]
+  }
+}
